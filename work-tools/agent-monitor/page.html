@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Monitor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Layout: plan meters and totals on top, then every Claude session grouped by herdr session, then the log.
+     Same family as Planner: Inter, mono digits, one indigo accent; green / amber / red only for context state. */
+  :root{--bg:#f7f8fb;--panel:#fff;--ink:#0b0d12;--muted:#4b5563;--faint:#8a919e;--line:#e5e7eb;--accent:#4c5fe0;--soft:#eef1fd;
+    --ok:#16a34a;--warn:#d97706;--crit:#e5484d;--raise:0 1px 2px rgba(16,24,40,.04),0 2px 8px rgba(16,24,40,.05);
+    --sans:"Inter",-apple-system,sans-serif;--mono:"Geist Mono",ui-monospace,Menlo,monospace;color-scheme:light}
+  @media (prefers-color-scheme:dark){:root{--bg:#101217;--panel:#191c22;--ink:#eef0f4;--muted:#a3a9b5;--faint:#6f7684;--line:#2a2e36;
+    --accent:#7d8dff;--soft:#22263a;--ok:#3ddc84;--warn:#f5a524;--crit:#ff6369;--raise:0 1px 0 rgba(255,255,255,.03),0 8px 24px rgba(0,0,0,.35);color-scheme:dark}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 20px 80px}
+  header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);
+    display:flex;align-items:center;gap:12px;padding:14px 0;flex-wrap:wrap}
+  h1{margin:0;font-size:17px;font-weight:650;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+  .mark{width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#b17cf7,var(--accent))}
+  .chip{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 10px;background:var(--panel)}
+  .spacer{flex:1}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--raise);padding:16px 18px}
+  .top{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
+  @media(max-width:1000px){.top{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .k{font-size:12px;color:var(--muted)} .v{font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:2px}
+  .d{font-size:12px;color:var(--faint)}
+  .meter{height:8px;border-radius:4px;background:var(--line);margin:10px 0 6px;overflow:hidden}
+  .meter i{display:block;height:100%;border-radius:4px}
+  .hist{margin-bottom:14px}
+  .hist svg{width:100%;height:90px;display:block}
+  .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:6px}
+  .legend span{display:flex;align-items:center;gap:6px} .legend i{width:14px;height:3px;border-radius:2px;display:block}
+  h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px;font-weight:600;display:flex;gap:10px;align-items:baseline}
+  h2 small{text-transform:none;letter-spacing:0;font-weight:400;color:var(--faint)}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:900px}
+  th{text-align:left;font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  tr.closed td{opacity:.5}
+  td.r,th.r{text-align:right}
+  .who b{font-weight:600} .who .w{font-size:12px;color:var(--faint);display:block;margin-top:1px}
+  .st{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .st i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+  .st.working i{background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+  .st.blocked i{background:var(--warn)} .st.idle i,.st.done i{background:var(--ok)}
+  .ctx{min-width:170px}
+  .ctx .meter{margin:3px 0 2px;height:6px}
+  .ctx .lbl{display:flex;justify-content:space-between;font-size:12px}
+  .lv-ok{background:var(--ok)} .lv-warn{background:var(--warn)} .lv-crit{background:var(--crit)}
+  .t-warn{color:var(--warn)} .t-crit{color:var(--crit)}
+  .note{font-size:12px;color:var(--muted);margin-top:4px;max-width:340px}
+  .note.crit{color:var(--crit)} .note.warn{color:var(--warn)}
+  .acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  button{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:7px;padding:4px 9px;cursor:pointer;white-space:nowrap}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button.armed{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ev{display:grid;grid-template-columns:88px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+  .ev:first-child{border-top:0}
+  .ev .when{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .ev .would{display:block;font-size:12px;color:var(--muted)}
+  .empty{color:var(--muted);font-size:13.5px;padding:8px 0}
+  .tog{font-size:12.5px;color:var(--accent);background:none;border:0;padding:0;cursor:pointer}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.on{opacity:1}
+  /* Chat center (user, 2026-10-14), as in Daily Tasks: talk to a Claude session from this page. ✕ hides it. */
+  #chat{position:fixed;top:14px;right:16px;bottom:16px;width:360px;z-index:20;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--raise)}
+  @media(min-width:1101px){body{padding-right:380px}}
+  html.chat-off #chat{display:none} html.chat-off #chatfab{display:block}
+  @media(min-width:1101px){html.chat-off body{padding-right:0}}
+  #chat .ch{padding:12px 14px;border-bottom:1px solid var(--line)}
+  #chat .ch h3{font-size:14px;margin:0 0 6px;display:flex;align-items:center;gap:8px;font-weight:650}
+  #chat .ch h3 button{margin-left:auto}
+  #chat .goto{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  #chat .goto select{font:inherit;font-size:12.5px;padding:2px 6px;max-width:240px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
+  #chat .goto .st2.working{color:var(--accent);font-weight:600}
+  #thread{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  #thread .empty{text-align:center;margin-top:30%}
+  .msg{max-width:88%;padding:8px 12px;border-radius:12px;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+  .msg.you{align-self:flex-end;background:var(--soft)} .msg.claude{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
+  .msg .meta{display:block;font-size:11px;color:var(--faint);margin-top:3px}
+  .msg .meta b.sent{color:var(--warn)} .msg .meta b.working{color:var(--accent)} .msg .meta b.done{color:var(--ok)}
+  #chatin{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+  #chatin textarea{flex:1;min-height:42px;max-height:140px;resize:vertical;border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+    font:inherit;font-size:13.5px;background:var(--bg);color:var(--ink)}
+  #chatin textarea:focus{outline:0;border-color:var(--accent)}
+  #chatin button{border:0;border-radius:10px;padding:0 14px;background:var(--accent);color:#fff;font-weight:650;font-size:13px}
+  #chatfab{display:none;position:fixed;right:16px;bottom:16px;z-index:21;border:0;border-radius:999px;padding:10px 16px;
+    background:var(--accent);color:#fff;font-weight:650;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  @media(max-width:1100px){#chat{top:0;right:0;bottom:0;width:min(400px,94vw);border-radius:0;transform:translateX(105%);transition:transform .2s}
+    #chat.open{transform:none} #chatfab{display:block}}
+  /* Tabs + Guide (user, 2026-10-14: "a guide tab … what actions I can do … what can be automated") */
+  .tabs{display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+  .tabs button{border:0;background:none;color:var(--muted);font-weight:600;font-size:13px;padding:4px 12px;border-radius:7px}
+  .tabs button.on{background:var(--soft);color:var(--ink)}
+  .tabs button:hover{color:var(--ink)}
+  .g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  @media(max-width:900px){.g{grid-template-columns:minmax(0,1fr)}}
+  .g h3{margin:0 0 8px;font-size:15px;font-weight:650;letter-spacing:-.01em}
+  .g ul{margin:0;padding-left:18px} .g li{margin:4px 0;font-size:14px}
+  .g p{margin:6px 0;font-size:14px;color:var(--muted)}
+  .lead{font-size:14.5px;color:var(--muted);margin:4px 0 14px;max-width:70ch}
+  table.auto{min-width:0} table.auto td{font-size:13.5px} table.auto td:first-child{font-weight:600;white-space:nowrap}
+  .pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .pill.on{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+  .pill.off{background:var(--soft);color:var(--accent)}
+  .pill.idea{background:var(--line);color:var(--muted)}
+  ul.plain{list-style:none;padding:0} ul.plain li{padding:5px 0;border-top:1px solid var(--line)} ul.plain li:first-child{border-top:0}
+  table.auto td{padding:6px 4px}
+  kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--bg)}
+  #policy{cursor:pointer;font:inherit;font-size:12px}
+  #policy:hover{border-color:var(--accent);color:var(--accent)}
+  .thr{position:fixed;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;
+    box-shadow:0 12px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:8px;width:230px;font-size:13px}
+  .thr label{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .thr input{width:64px;font:inherit;font-family:var(--mono);padding:3px 6px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
+  .thr .row{display:flex;gap:6px;justify-content:flex-end}
+  .thr .save{background:var(--accent);border-color:var(--accent);color:#fff}
+  .sess{margin-bottom:12px;padding:6px 8px}
+  .sh{padding:8px 10px 4px;font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:baseline}
+  .sh b{color:var(--ink);font-size:15px} .sh span{margin-left:auto;font-size:12px}
+  tr.gw td{padding:14px 10px 4px;font-weight:650;font-size:13.5px;border-bottom:0;color:var(--ink)}
+  tr.gt td{padding:6px 10px 6px 26px;background:var(--bg);border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+  tr.gt td{display:table-cell} tr.gt span{font-weight:600;color:var(--ink)} tr.gt .tp{font-weight:400;color:var(--faint);margin-left:8px}
+  tr.gt .closetab{float:right;font-size:11.5px;padding:2px 8px}
+  .closetab.armed{background:var(--crit);border-color:var(--crit);color:#fff}
+  /* clean pass */
+  .who{display:flex;gap:10px;align-items:flex-start}
+  .who .st{padding-top:6px} .who .st i{width:9px;height:9px}
+  .acts{opacity:0;transition:opacity .15s}
+  tr.row:hover .acts,.acts:has(.armed),.acts:focus-within{opacity:1}
+  @media (hover:none){.acts{opacity:1}}
+  .acts .closetab.armed{background:var(--crit);border-color:var(--crit);color:#fff}
+  .acts button.armed:not(.closetab){background:var(--accent);border-color:var(--accent);color:#fff}
+  tr.gw td{padding:16px 10px 6px;font-weight:650;font-size:13px;border-bottom:1px solid var(--line);color:var(--ink)}
+  tr.fold{cursor:pointer} tr.fold td{color:var(--muted);font-weight:600} tr.fold:hover td{color:var(--accent)}
+  tr.fold .cnt{font-family:var(--mono);font-weight:500;margin-left:4px}
+  tr.row td:first-child{padding-left:10px}
+  .sh{padding:10px 10px 2px} .sh b{font-size:15px}
+  details.hist summary{cursor:pointer;list-style:none} details.hist summary::before{content:"▸ ";color:var(--faint)}
+  details.hist[open] summary::before{content:"▾ "}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="mark" aria-hidden="true"></span>Agent Monitor</h1>
+    <nav class="tabs" aria-label="Sections"><button data-tab="mon">Monitor</button><button data-tab="guide">Guide</button></nav>
+    <button class="chip" id="policy" title="Change the thresholds and auto Fresh start">—</button>
+    <span class="spacer"></span>
+    <span class="chip num" id="updated">—</span>
+  </header>
+
+  <div id="p-mon">
+  <div class="top" id="top"></div>
+  <details class="card hist" id="histbox"><summary class="k">12-hour history</summary><div id="hist" style="margin-top:8px"></div></details>
+
+  <h2>Sessions <small id="sesssub"></small></h2>
+  <div id="groups"></div>
+
+  <h2>Log</h2>
+  <div class="card" id="events"></div>
+  </div>
+
+  <div id="p-guide" hidden>
+    <div class="g" style="margin-top:6px">
+      <div class="card"><h3>Colours</h3><ul class="plain">
+        <li><b style="color:var(--ok)">Green</b>: under 70%, fine</li>
+        <li><b style="color:var(--warn)">Amber</b>: 70%+, wrap up soon</li>
+        <li><b style="color:var(--crit)">Red</b>: 85%+, restart</li>
+        <li><b>Cache expiring</b>: next turn costs more</li></ul></div>
+      <div class="card"><h3>Buttons</h3><ul class="plain">
+        <li><b>Fresh start</b>: saves a note, then restarts clean</li>
+        <li><b>/compact</b>: shrink the context</li>
+        <li><b>Close tab</b>: closes that Herdr tab and everything in it</li>
+        <li>Click twice. On a busy session, Fresh start waits for its task to finish</li>
+        <li><b>Chat</b>: ask, or tell it what to do</li>
+        <li><b>Amber / red chip</b> (top): thresholds, and auto Fresh start</li></ul></div>
+      <div class="card"><h3>Save tokens</h3><ul class="plain">
+        <li>One task per session</li>
+        <li>Don't resume a big session after 1 hour</li>
+        <li>Sonnet for routine work</li></ul></div>
+      <div class="card"><h3>Automations</h3><table class="auto">
+        <tr><td>Watch and flag</td><td class="r"><span class="pill on">on</span></td></tr>
+        <tr><td>Fresh start at red</td><td class="r"><span class="pill" id="autopill">off</span></td></tr>
+        <tr><td>Auto /compact</td><td class="r"><span class="pill idea">idea</span></td></tr>
+        <tr><td>Plan alerts</td><td class="r"><span class="pill idea">idea</span></td></tr>
+        <tr><td>Daily report</td><td class="r"><span class="pill idea">idea</span></td></tr></table></div>
+    </div>
+  </div>
+</div>
+<aside id="chat" aria-label="Chat center">
+  <div class="ch"><h3>💬 Chat center <button id="chatclose" title="Hide chat">✕</button></h3>
+    <div class="goto">Goes to <select id="agentsel"></select><span class="st2" id="agentst"></span></div></div>
+  <div id="thread"></div>
+  <div id="chatin"><textarea id="chattext" placeholder="Ask anything…"></textarea><button id="chatsend">Send</button></div>
+</aside>
+<button id="chatfab">💬 Chat</button>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2600)};
+const kfmt=n=>n==null?'—':n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?Math.round(n/1e3)+'k':String(n);
+const usd=n=>n==null?'—':'$'+(n>=100?Math.round(n):n.toFixed(2));
+const ago=t=>{if(!t)return'—';const s=Date.now()/1000-t;return s<60?'now':s<3600?Math.round(s/60)+'m ago':s<86400?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago'};
+const until=t=>{if(!t)return'';const s=t-Date.now()/1000;if(s<=0)return'now';const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?`${h}h ${m}m`:`${m}m`};
+const lv=p=>{const w=S?.policy?.warn??70,c=S?.policy?.crit??85;return p==null?'ok':p>=c?'crit':p>=w?'warn':'ok'};
+let S=null, showClosed=false;
+
+function meter(p){return `<div class="meter"><i class="lv-${lv(p)}" style="width:${Math.min(100,p||0)}%"></i></div>`}
+// Clean pass (user, 2026-10-14: "not looking very clean"): 4 boxes, actions only on hover, no tab rows,
+// sessions unused for 7+ days folded into one line per herdr session.
+function drawTop(){const p=S.plan||{}, t=S.totals;
+  $('#top').innerHTML=`
+    <div class="card"><div class="k">5-hour plan</div><div class="v num t-${lv(p.five_h)}">${p.five_h??'—'}%</div>${meter(p.five_h)}<div class="d">resets in ${until(p.five_h_reset)}</div></div>
+    <div class="card"><div class="k">Weekly plan</div><div class="v num t-${lv(p.week)}">${p.week??'—'}%</div>${meter(p.week)}<div class="d">resets in ${until(p.week_reset)}</div></div>
+    <div class="card"><div class="k">Live</div><div class="v num">${t.live}</div><div class="d">${t.working} working · ${kfmt(t.ctx_tokens)} context</div></div>
+    <div class="card"><div class="k">Need a look</div><div class="v num ${t.flagged?'t-warn':''}">${t.flagged}</div><div class="d">${usd(t.cost_live)} live cost · ${kfmt(t.tokens_today)} today</div></div>`}
+
+function drawHist(){const H=S.history||[];
+  if(H.length<2){$('#hist').innerHTML='<div class="empty">Collecting…</div>';return}
+  const W=1000,Ht=90,t0=H[0].t,t1=H[H.length-1].t||t0+1, x=t=>((t-t0)/Math.max(1,t1-t0))*W;
+  const line=(key,max,color)=>`<polyline fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke" points="${H.filter(h=>h[key]!=null).map(h=>`${x(h.t).toFixed(1)},${(Ht-4-(h[key]/max)*(Ht-8)).toFixed(1)}`).join(' ')}"/>`;
+  const cmax=Math.max(...H.map(h=>h.ctx_tokens||0),1);
+  $('#hist').innerHTML=`<svg viewBox="0 0 ${W} ${Ht}" preserveAspectRatio="none">${line('ctx_tokens',cmax*1.1,'var(--faint)')}${line('week',100,'var(--accent)')}${line('five_h',100,'var(--warn)')}</svg>
+    <div class="legend"><span><i style="background:var(--warn)"></i>5-hour %</span><span><i style="background:var(--accent)"></i>weekly %</span><span><i style="background:var(--faint)"></i>context open</span></div>`}
+
+const UNUSED=7*86400;
+const unused=r=>r.alive&&r.last_used&&Date.now()/1000-r.last_used>UNUSED;
+let openUnused=new Set();
+function rowHTML(r,where){const pct=r.ctx_pct, idle=r.alive&&(r.status==='idle'||r.status==='done'), busy=r.alive&&r.status==='working';
+  const sub=[where?`${r.workspace} › ${r.tab}`:(r.alive?r.tab:'closed'),[r.model,r.effort].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+  // Busy sessions get Fresh start too: it finishes its task, then hands over (user, 2026-10-14). Not "blocked":
+  // typed text would land on its permission prompt. /compact stays idle-only.
+  const btns=((idle||busy)&&!r.handover?`<button data-act="fresh" data-key="${esc(r.key)}" title="${busy?'When its current task is done, it saves a handover note and restarts here with a clean context':'It saves a handover note, then restarts here with a clean context and reads the note'}">Fresh start</button>`:'')
+    +(idle&&!r.handover?`<button data-act="compact" data-key="${esc(r.key)}" title="Shrink its context">/compact</button>`:'')
+    +(r.alive&&r.tab_id?`<button class="closetab" data-sess="${esc(r.herdr_session)}" data-tab="${esc(r.tab_id)}" data-label="${esc(r.tab)}" data-panes="${r.tab_panes||1}" title="Close this herdr tab">Close tab</button>`:'');
+  return `<tr class="row ${r.alive?'':'closed'}">
+    <td class="who"><span class="st ${esc(r.status)}" title="${esc(r.status)}"><i></i></span><div><b>${esc(r.name||r.title||'(untitled)')}</b><span class="w">${esc(sub)}</span>
+      ${r.handover?`<div class="note" style="color:var(--accent)">Fresh start: ${esc(r.handover)}…</div>`:''}
+      ${r.notes.map(n=>`<div class="note ${/soon$/.test(n)?lv(pct):''}">${esc(n)}</div>`).join('')}</div></td>
+    <td class="ctx"><div class="lbl num"><span class="t-${lv(pct)}">${pct??'—'}%</span><span>${kfmt(r.ctx_tokens)}</span></div>${meter(pct)}</td>
+    <td class="r num">${usd(r.cost)}</td>
+    <td class="r num">${kfmt(r.tokens_today)}</td>
+    <td class="r num" title="${r.last_used?new Date(r.last_used*1000).toLocaleString():''}">${ago(r.last_used)}</td>
+    <td class="r"><div class="acts">${btns}</div></td></tr>`}
+
+function drawGroups(){const rows=S.rows, closed=rows.filter(r=>!r.alive).length;
+  $('#sesssub').innerHTML=`${rows.length-closed} live${closed?` · <button class="tog" id="tog">${showClosed?'hide':'show'} ${closed} closed</button>`:''}`;
+  const head='<tr><th>Session</th><th>Context</th><th class="r">Cost</th><th class="r">Today</th><th class="r">Last used</th><th></th></tr>';
+  $('#groups').innerHTML=[...new Set(rows.map(r=>r.herdr_session))].map(s=>{
+    const rs=rows.filter(r=>r.herdr_session===s), live=rs.filter(r=>r.alive&&!unused(r)), old=rs.filter(unused), gone=rs.filter(r=>!r.alive);
+    if(!live.length&&!old.length&&!(showClosed&&gone.length))return'';
+    let body='', lastW=null;
+    for(const r of live){if(r.workspace!==lastW){lastW=r.workspace;body+=`<tr class="gw"><td colspan="6">${esc(r.workspace)}</td></tr>`}body+=rowHTML(r)}
+    if(old.length){const op=openUnused.has(s);
+      body+=`<tr class="gw fold" data-fold="${esc(s)}"><td colspan="6">${op?'▾':'▸'} Unused 7+ days <span class="cnt">${old.length}</span></td></tr>`+(op?old.map(r=>rowHTML(r,true)).join(''):'')}
+    if(showClosed&&gone.length)body+=`<tr class="gw"><td colspan="6">Closed</td></tr>`+gone.map(r=>rowHTML(r,true)).join('');
+    return `<div class="card sess"><div class="sh"><b>${esc(s)}</b><span>${rs.filter(r=>r.alive).length} live</span></div>
+      <div class="scroll"><table>${head}${body}</table></div></div>`}).join('')||'<div class="card empty">No Claude sessions found yet.</div>';
+  $('#tog')&&($('#tog').onclick=()=>{showClosed=!showClosed;drawGroups()});
+  document.querySelectorAll('[data-fold]').forEach(t=>t.onclick=()=>{const s=t.dataset.fold;openUnused.has(s)?openUnused.delete(s):openUnused.add(s);drawGroups()});
+  // every action takes two clicks: the first arms it ("Send?" / "Close it?"), the second does it
+  const reset=b=>{b.classList.remove('armed');b.textContent=b.classList.contains('closetab')?'Close tab':b.dataset.act==='fresh'?'Fresh start':'/compact'};
+  document.querySelectorAll('.acts button').forEach(b=>b.onclick=async()=>{
+    if(!b.classList.contains('armed')){document.querySelectorAll('.acts .armed').forEach(reset);b.classList.add('armed');
+      b.textContent=b.classList.contains('closetab')?(+b.dataset.panes>1?`Close ${b.dataset.panes} panes?`:'Close it?'):'Send?';
+      setTimeout(()=>{if(b.isConnected&&b.classList.contains('armed'))reset(b)},4000);return}
+    // Second click: un-arm it at once (an armed button pauses the list's redraw, which left closed tabs on
+    // screen until a refresh, 2026-10-14), say what's happening on the row, then redraw from the server.
+    const close=b.classList.contains('closetab');
+    b.classList.remove('armed');b.disabled=true;
+    b.closest('.acts')?.querySelectorAll('button').forEach(x=>x.disabled=true);
+    b.textContent=close?'Closing…':'Sending…';
+    b.closest('tr').querySelector('.who > div')?.insertAdjacentHTML('beforeend',
+      `<div class="note" style="color:var(--accent)">${close?'Closing tab…':b.dataset.act==='fresh'?'Starting fresh…':'Sending /compact…'}</div>`);
+    try{const r=await fetch(close?'/api/close-tab':'/api/action',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(close?{herdr_session:b.dataset.sess,tab_id:b.dataset.tab}:{key:b.dataset.key,action:b.dataset.act})});
+      const j=await r.json();if(!r.ok)throw new Error(j.error);
+      toast(close?`Closed “${b.dataset.label}”`:b.dataset.act==='fresh'?'Fresh start begun: it saves a note, then restarts':'Sent');
+      await load()}
+    catch(e){toast(e.message);await load()}})}
+
+// Only the 10 newest entries (user, 2026-10-14); the server sends newest first.
+function drawEvents(){const E=(S.events||[]).slice(0,10);
+  $('#events').innerHTML=E.length?E.map(e=>`<div class="ev"><span class="when">${new Date(e.t*1000).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</span><span class="${e.kind==='crit'?'t-crit':e.kind==='warn'?'t-warn':''}">${esc(e.text)}${e.would?`<span class="would">Would ${esc(e.would)}</span>`:''}</span></div>`).join('')
+    :'<div class="empty">Nothing yet.</div>'}
+
+async function load(){try{S=await (await fetch('/api/state')).json()}catch(e){$('#updated').textContent='monitor not answering';return}
+  $('#autopill').textContent=S.policy.auto?'on':'off';$('#autopill').className='pill '+(S.policy.auto?'on':'off');
+  $('#policy').textContent=`amber ${S.policy.warn}% · red ${S.policy.crit}% · auto ${S.policy.auto?'on':'off'}`;
+  $('#updated').textContent='updated '+ago(S.t);
+  drawTop();drawHist();if(!document.querySelector('.armed'))drawGroups();drawEvents()}
+load();setInterval(()=>{if(S&&S.rows.some(r=>r.handover))load()},3000);setInterval(load,10000);
+
+// Thresholds (user, 2026-10-14): click the chip, set amber and red, Save. Stored by the monitor for everyone.
+$('#policy').onclick=e=>{e.stopPropagation();document.querySelector('.thr')?.remove();if(!S)return;
+  const box=document.createElement('div');box.className='thr';
+  box.innerHTML=`<label><span style="color:var(--warn);font-weight:600">Amber from</span><span><input id="thw" type="number" min="10" max="98" value="${S.policy.warn}"> %</span></label>
+    <label><span style="color:var(--crit);font-weight:600">Red from</span><span><input id="thc" type="number" min="11" max="99" value="${S.policy.crit}"> %</span></label>
+    <label title="At red, a session in use (working, or idle with a warm cache) gets a Fresh start by itself"><span>Auto at red</span><span><input id="tha" type="checkbox" ${S.policy.auto?'checked':''}></span></label>
+    <div class="row"><button id="thx">Cancel</button><button class="save" id="ths">Save</button></div>`;
+  document.body.appendChild(box);const r=e.currentTarget.getBoundingClientRect();box.style.top=(r.bottom+6)+'px';box.style.left=r.left+'px';
+  box.onclick=ev=>ev.stopPropagation();box.querySelector('#thx').onclick=()=>box.remove();
+  box.querySelector('#ths').onclick=async()=>{try{const j=await (await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({warn:+box.querySelector('#thw').value,crit:+box.querySelector('#thc').value,auto:box.querySelector('#tha').checked})})).json();
+    if(j.error)throw new Error(j.error);box.remove();toast(`Amber ${j.warn}%, red ${j.crit}%, auto ${j.auto?'on':'off'}`);load()}catch(err){toast(err.message)}};
+  setTimeout(()=>document.addEventListener('click',function off(){box.remove();document.removeEventListener('click',off)}),0)};
+
+function showTab(t){if(t!=='guide')t='mon';$('#p-mon').hidden=t!=='mon';$('#p-guide').hidden=t!=='guide';
+  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  try{localStorage.setItem('am-tab',t)}catch(e){}}
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+{let t='mon';try{t=localStorage.getItem('am-tab')||'mon'}catch(e){}showTab(t)}
+
+// ---- Chat center: one running thread. A message wakes the session in "Goes to"; it answers with chat.py. ----
+let CHAT=[], AG={agents:[],chosen:null};
+const when=t=>new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});
+  const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);return j};
+function drawChat(){const th=$('#thread'),atEnd=th.scrollHeight-th.scrollTop-th.clientHeight<40;
+  th.innerHTML=CHAT.length?CHAT.map(m=>`<div class="msg ${m.from}">${esc(m.text)}<span class="meta">${m.from==='you'?'You':'Claude'} · ${when(m.t)}`+
+    (m.from==='you'?` · <b class="${m.status}">${m.status==='done'?'✓ done':m.status}</b>`:'')+`</span></div>`).join('')
+    :'<div class="empty">No messages yet.</div>';
+  if(atEnd)th.scrollTop=th.scrollHeight}
+async function pollChat(){try{const r=await api('/api/chat');if(JSON.stringify(r.chat)!==JSON.stringify(CHAT)){CHAT=r.chat;drawChat()}}catch(e){}}
+async function pollAgents(){try{AG=await api('/api/agents')}catch(e){return}
+  const sel=$('#agentsel');if(document.activeElement!==sel){
+    sel.innerHTML=(AG.chosen?'':'<option value="">— pick a session —</option>')+AG.agents.map(a=>`<option value="${esc(a.id)}" ${a.id===AG.chosen?'selected':''}>${esc(a.session)} · ${esc((a.name||'').slice(0,34))}</option>`).join('')}
+  const a=AG.agents.find(x=>x.id===AG.chosen),st=$('#agentst');
+  st.textContent=a?(a.status==='working'?'· busy':'· idle'):(AG.chosen?'· not running':'');st.className='st2 '+(a&&a.status==='working'?'working':'')}
+$('#agentsel').onchange=async e=>{if(!e.target.value)return;await api('/api/agent',{id:e.target.value});toast('Chat now goes to '+e.target.selectedOptions[0].text);pollAgents()};
+async function sendChat(){const ta=$('#chattext'),text=ta.value.trim();if(!text)return;
+  if(!AG.chosen)return toast('Pick a session in "Goes to" first');
+  const b=$('#chatsend');b.disabled=true;
+  try{const r=await api('/api/chat',{text});CHAT=r.chat;ta.value='';drawChat();$('#thread').scrollTop=1e9;
+    if(!r.woke)toast("Saved, but the session didn't wake. Is it running?")}catch(e){toast(e.message)}
+  b.disabled=false}
+$('#chatsend').onclick=sendChat;
+$('#chattext').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}};
+const wide=()=>innerWidth>1100;
+function chatOff(off){document.documentElement.classList.toggle('chat-off',off);try{off?localStorage.setItem('am-chat-off','1'):localStorage.removeItem('am-chat-off')}catch(e){}}
+try{if(localStorage.getItem('am-chat-off'))document.documentElement.classList.add('chat-off')}catch(e){}
+$('#chatfab').onclick=()=>{chatOff(false);if(!wide())$('#chat').classList.add('open')};
+$('#chatclose').onclick=()=>wide()?chatOff(true):$('#chat').classList.remove('open');
+pollAgents();setInterval(pollAgents,8000);
+setInterval(()=>{const busy=CHAT.some(m=>m.from==='you'&&m.status!=='done');if(busy||Date.now()%9000<3000)pollChat()},3000);
+drawChat();pollChat();
+</script>
+</body>
+</html>

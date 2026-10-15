@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdf9f1"/><stop offset="1" stop-color="#ebe1cf"/></linearGradient>
+  <linearGradient id="acc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c86a50"/><stop offset="1" stop-color="#a4472f"/></linearGradient>
+  <linearGradient id="ok" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fb06f"/><stop offset="1" stop-color="#2f8650"/></linearGradient>
+</defs>
+<!-- macOS icon grid: 824px rounded square centred on 1024 -->
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+<rect x="100.5" y="100.5" width="823" height="823" rx="185" fill="none" stroke="#d9cdb8" stroke-width="3"/>
+<!-- three board columns: planned, started, completed -->
+<rect x="212" y="250" width="180" height="520" rx="34" fill="#e7dcc8"/>
+<rect x="422" y="250" width="180" height="520" rx="34" fill="#e7dcc8"/>
+<rect x="632" y="250" width="180" height="520" rx="34" fill="#e7dcc8"/>
+<rect x="232" y="280" width="140" height="92" rx="20" fill="#fffdf8"/>
+<rect x="232" y="390" width="140" height="92" rx="20" fill="#fffdf8"/>
+<rect x="232" y="500" width="140" height="92" rx="20" fill="#fffdf8"/>
+<rect x="442" y="280" width="140" height="150" rx="22" fill="url(#acc)"/>
+<rect x="468" y="318" width="88" height="14" rx="7" fill="#fff" opacity=".85"/>
+<rect x="468" y="348" width="60" height="14" rx="7" fill="#fff" opacity=".6"/>
+<rect x="652" y="280" width="140" height="92" rx="20" fill="url(#ok)"/>
+<rect x="652" y="390" width="140" height="92" rx="20" fill="url(#ok)" opacity=".75"/>
+<path d="M690 330 l24 24 l44 -46" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M690 440 l24 24 l44 -46" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

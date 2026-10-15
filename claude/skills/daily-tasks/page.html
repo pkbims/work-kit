@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daily Tasks</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  /* Themes (user, 2026-10-13: "more theme options … learn from Motion"). Default = Motion: white surfaces, a faint
+     lavender wash, indigo-blue accent, Inter, a purple→blue gradient for highlights. It follows the Mac's light/dark
+     unless a theme is picked from the ◐ menu, which sets data-theme (and data-skin for the non-Motion themes). */
+  :root{--bg:#f7f8fb;--panel:#ffffff;--ink:#0b0d12;--muted:#4b5563;--line:#e5e7eb;--accent:#4c5fe0;--accent2:#b17cf7;
+    --soft:#eef1fd;--ok:#16a34a;--over:#e5484d;--glow:rgba(76,95,224,.16);
+    --wash:radial-gradient(1100px 520px at 50% -12%,rgba(150,130,255,.14),transparent 70%);
+    --raise:0 1px 2px rgba(16,24,40,.04),0 2px 8px rgba(16,24,40,.05);
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--mono:"Geist Mono",ui-monospace,Menlo,monospace;color-scheme:light}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#101217;--panel:#191c22;
+    --ink:#eef0f4;--muted:#a3a9b5;--line:#2a2e36;--accent:#7d8dff;--accent2:#c49bff;--soft:#22263a;--ok:#3ddc84;--over:#ff6369;
+    --glow:rgba(125,141,255,.2);--wash:radial-gradient(1100px 520px at 50% -12%,rgba(125,110,255,.16),transparent 70%);
+    --raise:0 1px 0 rgba(255,255,255,.03),0 8px 24px rgba(0,0,0,.35)}}
+  :root[data-theme="dark"]{color-scheme:dark;--bg:#101217;--panel:#191c22;--ink:#eef0f4;--muted:#a3a9b5;--line:#2a2e36;
+    --accent:#7d8dff;--accent2:#c49bff;--soft:#22263a;--ok:#3ddc84;--over:#ff6369;--glow:rgba(125,141,255,.2);
+    --wash:radial-gradient(1100px 520px at 50% -12%,rgba(125,110,255,.16),transparent 70%);
+    --raise:0 1px 0 rgba(255,255,255,.03),0 8px 24px rgba(0,0,0,.35)}
+  /* The other themes come after, so they win over the light/dark blocks above. */
+  :root[data-skin="paper"]{color-scheme:light;--bg:#f4eee2;--panel:#fdf9f1;--ink:#2a2521;--muted:#5c5349;--line:#e3d9c7;
+    --accent:#b0523a;--accent2:#d99a4e;--soft:#f5e4dc;--ok:#3a8a52;--over:#c2410c;--glow:rgba(176,82,58,.16);--wash:none;
+    --raise:0 1px 2px rgba(60,40,20,.05);--sans:"IBM Plex Sans",-apple-system,sans-serif}
+  :root[data-skin="graphite"]{color-scheme:dark;--bg:#0e0f11;--panel:#17191c;--ink:#e8e8e8;--muted:#a0a3a9;--line:#27292d;
+    --accent:#3ecf8e;--accent2:#7ee0b8;--soft:#1a2a23;--ok:#3ecf8e;--over:#ff6b6b;--glow:rgba(62,207,142,.16);--wash:none;
+    --raise:0 1px 0 rgba(255,255,255,.03),0 8px 24px rgba(0,0,0,.4);--sans:"Geist",-apple-system,sans-serif}
+  :root[data-skin="nord"]{color-scheme:light;--bg:#e8ecf2;--panel:#f6f8fb;--ink:#2e3440;--muted:#4c566a;--line:#d5dce7;
+    --accent:#5e81ac;--accent2:#88c0d0;--soft:#e1e9f3;--ok:#5e8a4e;--over:#bf616a;--glow:rgba(94,129,172,.18);--wash:none;
+    --raise:0 1px 2px rgba(46,52,64,.06);--sans:"Inter",-apple-system,sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "IBM Plex Sans",-apple-system,sans-serif}
+  header{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid var(--line);
+    padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{font-size:15px;margin:0;font-weight:650}
+  .spacer{flex:1}
+  select,button,input,textarea{font:inherit}
+  select{font-size:13.5px;padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+  .btn{font-size:13.5px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  main{max-width:var(--mainw,1200px);margin:0 auto;padding:24px 16px 120px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:20px}
+  h2{margin:0 0 8px;font-size:19px}
+  .speak{display:flex;gap:10px;flex-wrap:wrap}
+  .speak textarea{flex:1;min-width:240px;min-height:80px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+    font-size:15px;background:var(--bg);color:var(--ink)}
+  .gen{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:0 18px;font-size:14px;font-weight:650;cursor:pointer;min-height:46px}
+  .gen:disabled{opacity:.6;cursor:wait}
+  .sub{color:var(--muted);font-size:13.5px;margin:6px 0 0}
+  .prog{font-weight:500;color:var(--muted);font-size:13px;margin-left:6px}
+  /* Board (user, 2026-10-13: "like Motion"): Planned → Started → Completed, each task with a time limit. */
+  .board{display:grid;grid-template-columns:var(--cols,repeat(3,minmax(0,1fr)));gap:14px;align-items:start}
+  @media(max-width:760px){.board{grid-template-columns:minmax(0,1fr)}}
+  /* Hide a column (user, 2026-10-13): it folds to a thin strip with its name and count; click it to bring it back.
+     Per browser, in localStorage. Cards can still be dropped on a folded column. */
+  .colhide{border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;border-radius:5px}
+  .colhide:hover{color:var(--accent);background:var(--soft)}
+  .col.collapsed{cursor:pointer;padding:10px 4px;min-height:220px}
+  .col.collapsed:hover{border-color:var(--accent)}
+  .col.collapsed .colbody,.col.collapsed .newtask{display:none}
+  .col.collapsed h3{flex-direction:column;align-items:center;gap:10px;margin:0}
+  .col.collapsed h3 .cname{writing-mode:vertical-rl}
+  @media(max-width:760px){.col.collapsed{min-height:0;padding:10px}.col.collapsed h3{flex-direction:row;align-items:center}
+    .col.collapsed h3 .cname{writing-mode:horizontal-tb}}
+  .col{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .col h3{margin:2px 4px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+  .col h3 .cnt{font-weight:600;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums;margin-left:auto}
+  .col.collapsed h3 .cnt{margin-left:0}
+  .col[data-stage=started] h3{color:var(--accent)} .col[data-stage=completed] h3{color:var(--ok)}
+  .colbody{display:flex;flex-direction:column;gap:10px;min-height:70px}
+  .drop{margin:0;border:1px dashed var(--line);border-radius:10px;padding:18px 10px;text-align:center;color:var(--muted);font-size:13px}
+  .colbody:has(.t) .drop{display:none}
+  .tmeta{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .chip{border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:999px;padding:1px 9px;font-size:12.5px;cursor:pointer;font-variant-numeric:tabular-nums}
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+  .timer{font-size:12.5px;font-weight:650;color:var(--accent);font-variant-numeric:tabular-nums}
+  .timer.over{color:var(--over)} .timer.took{color:var(--ok);font-weight:500}
+  .act{border:0;border-radius:8px;padding:3px 10px;font-size:12.5px;font-weight:650;cursor:pointer;background:var(--accent);color:#fff;margin-left:auto}
+  .t.started .act{background:var(--ok)}
+  .t.started{border-color:var(--accent)}
+  .t{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel);position:relative}
+  .t.done{opacity:.72}
+  .head{display:flex;gap:10px;align-items:flex-start}
+  .icon{font-size:24px;line-height:1.15}
+  .ttl{flex:1;display:flex;flex-direction:column;font-size:15.5px;line-height:1.35}
+  .why{font-size:12.5px;color:var(--muted)}
+  .count{font-size:12px;color:var(--muted);font-weight:650;white-space:nowrap}
+  .bar{height:4px;background:var(--line);border-radius:2px;margin:10px 0 6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+  .t.done .bar i{background:var(--ok)}
+  ul{list-style:none;padding:0;margin:0}
+  li{display:flex;gap:8px;align-items:center;font-size:14.5px;padding:3px 0}
+  li input{accent-color:var(--accent);width:16px;height:16px;flex:none}
+  li.done span{color:var(--muted);text-decoration:line-through}
+  li span{flex:1}
+  .x{border:0;background:none;color:var(--muted);cursor:pointer;opacity:0;font-size:15px;padding:0 4px}
+  li:hover .x,.head:hover .x{opacity:1}
+  .grip{cursor:grab;color:var(--muted);opacity:0;user-select:none;font-size:14px;line-height:1.6;padding:0 2px;flex:none}
+  li:hover>.grip,.head:hover>.grip{opacity:1}
+  .dragging{opacity:.35}
+  .t ul{min-height:8px}
+  .add{border:0;background:none;color:var(--accent);cursor:pointer;font-size:13.5px;padding:4px 0 0}
+  .adder{display:flex;gap:10px;flex-wrap:wrap}
+  .adder textarea{flex:1;min-width:0;width:100%;min-height:60px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+    font-size:14px;background:var(--bg);color:var(--ink);resize:vertical}
+  .inl{width:100%;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:14px;background:var(--panel);color:var(--ink)}
+  [data-edit]{cursor:text;border-radius:4px}
+  [data-edit]:hover{background:var(--line)}
+  .why:empty::before{content:'+ add why';opacity:0}
+  .head:hover .why:empty::before{opacity:.7}
+  .goals li{font-size:15px;padding:4px 0}
+  .newtask{border:1px dashed var(--line);border-radius:12px;display:grid;place-items:center;color:var(--accent);
+    cursor:pointer;min-height:48px;font-weight:650;background:none}
+  .empty{color:var(--muted);text-align:center;padding:20px 0}
+  .mv{font-size:13px}
+  .timebox{width:236px}
+  .topts{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:2px 2px 4px}
+  .topts button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:5px 0;font-size:13px;
+    cursor:pointer;font-variant-numeric:tabular-nums}
+  .topts button:hover{border-color:var(--accent);color:var(--accent)}
+  .topts button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .timebox .pick input{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--ink)}
+  .movebox{position:absolute;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.18);width:214px;display:flex;flex-direction:column;gap:3px}
+  .movebox b{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:650;padding:2px 6px}
+  .movebox button.day{text-align:left;border:0;background:none;color:var(--ink);font-size:14px;padding:6px 8px;
+    border-radius:7px;cursor:pointer}
+  .movebox button.day:hover{background:var(--soft);color:var(--accent)}
+  .movebox .pick{display:flex;gap:6px;border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
+  .movebox input[type=date]{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;padding:4px 6px;
+    font-size:13px;background:var(--bg);color:var(--ink)}
+  .movebox .pick button{border:0;background:var(--accent);color:#fff;border-radius:7px;padding:4px 10px;
+    font-size:13px;font-weight:650;cursor:pointer}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+    padding:9px 16px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none}
+  #toast.on{opacity:1}
+  /* Chat center (user, 2026-10-09): talk to a Claude session from this page */
+  #chat{position:fixed;top:56px;right:16px;bottom:16px;width:var(--chatw,360px);z-index:20;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+  @media(min-width:1101px){body{padding-right:calc(var(--chatw,360px) + 20px)}}
+  /* Column grips, as in html-worker (user, 2026-10-09): drag the edge of the tasks or the chat; double-click resets.
+     Widths are per browser, in localStorage. */
+  .colgrip{position:fixed;top:56px;bottom:16px;width:14px;cursor:col-resize;z-index:22;touch-action:none}
+  .colgrip[hidden]{display:none}
+  .colgrip::after{content:"";position:absolute;top:30vh;left:5px;width:4px;height:44px;border-radius:2px;
+    background:var(--line);opacity:0;transition:opacity .15s}
+  .colgrip:hover::after,.colgrip.drag::after{opacity:1;background:var(--accent)}
+  html.colresize,html.colresize *{cursor:col-resize!important;user-select:none!important}
+  #chat .ch{padding:12px 14px;border-bottom:1px solid var(--line)}
+  #chat .ch h2{font-size:16px;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+  #chat .ch h2 button{margin-left:auto}
+  /* Hide chat (user, 2026-10-13): the chat goes away, the tasks take the room, 💬 Chat brings it back. Per browser. */
+  html.chat-off #chat{display:none} html.chat-off #chatfab{display:block}
+  @media(min-width:1101px){html.chat-off body{padding-right:0}}
+  #chat .goto{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  #chat .goto select{font-size:12.5px;padding:2px 6px;max-width:230px}
+  #chat .goto .st{font-weight:700} #chat .goto .st.working{color:#3b82f6}
+  #thread{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  #thread .empty{color:var(--muted);font-size:13.5px;text-align:center;margin-top:30%}
+  .msg{max-width:88%;padding:8px 12px;border-radius:12px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+  .msg.you{align-self:flex-end;background:var(--soft)} .msg.claude{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
+  .msg .meta{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+  .msg .meta b{font-weight:700} .msg .meta b.sent{color:var(--accent)} .msg .meta b.working{color:#3b82f6} .msg .meta b.done{color:var(--ok)}
+  #chatin{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+  #chatin textarea{flex:1;min-height:42px;max-height:140px;resize:vertical;border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+    font-size:14px;background:var(--bg);color:var(--ink)}
+  #chatin button{border:0;border-radius:10px;padding:0 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+  #chatin button:disabled{opacity:.5}
+  #chatfab{display:none;position:fixed;right:16px;bottom:16px;z-index:21;border:0;border-radius:999px;padding:10px 16px;
+    background:var(--accent);color:#fff;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  @media(max-width:1100px){#chat{top:0;right:0;bottom:0;width:min(400px,94vw);border-radius:0;transform:translateX(105%);transition:transform .2s;
+      box-shadow:-12px 0 40px rgba(0,0,0,.25)} #chat.open{transform:none} #chat .ch h2 button{display:inline-block} #chatfab{display:block}}
+  /* App tabs (user, 2026-10-13): Today (board, goals, chat) and Thoughts (one running list across all days). */
+  .apptabs{display:flex;gap:3px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px}
+  .apptabs button{border:0;background:none;color:var(--muted);font-size:13.5px;font-weight:600;padding:4px 12px;border-radius:7px;cursor:pointer}
+  .apptabs button:hover{color:var(--ink)}
+  .apptabs button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+  .thday{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:20px 0 4px}
+  .thday:first-child{margin-top:0}
+  .th{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border-top:1px solid var(--line)}
+  .thday+.th{border-top:0}
+  .tt{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:3px}
+  .tx{white-space:pre-wrap;word-wrap:break-word;font-size:15px;cursor:text;border-radius:6px;padding:0 4px;margin:0 -4px}
+  .tx:hover{background:var(--soft)}
+  .rs{border:0;background:none;color:var(--muted);cursor:pointer;font-size:12.5px;padding:0 4px}
+  .rs:hover{color:var(--accent)} .timer.paused{color:var(--muted)} .rs.armed{color:var(--over);font-weight:650}
+  .th .x{opacity:.45} .th:hover .x{opacity:1} .th .x.armed{opacity:1;color:var(--over);font-size:12.5px;font-weight:650}
+  .thedit{width:100%;min-height:64px;border:1px solid var(--accent);border-radius:8px;padding:6px 8px;font-size:15px;
+    background:var(--bg);color:var(--ink);resize:vertical}
+  /* ===== Look v2 (2026-10-13): clean, Motion-like. Overrides the rules above; layout logic is untouched. ===== */
+  body{font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased;background-image:var(--wash);background-repeat:no-repeat;background-attachment:fixed}
+  header{background:color-mix(in srgb,var(--panel) 78%,transparent);backdrop-filter:saturate(1.4) blur(14px);
+    -webkit-backdrop-filter:saturate(1.4) blur(14px);padding:9px 20px;gap:14px}
+  header h1{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:650;letter-spacing:-.01em}
+  .mark{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,var(--accent2),var(--accent));
+    box-shadow:0 0 0 3px var(--glow)}
+  .btn,select{border-radius:8px;font-size:13px;border-color:var(--line);background:var(--panel)}
+  .btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+  .btn.primary:hover{color:var(--bg);opacity:.88}
+  main{padding:20px 16px 120px}
+  .card{border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:var(--raise)}
+  h2{font-size:15px;font-weight:650;letter-spacing:-.01em;margin-bottom:10px}
+  .speak textarea,.adder textarea,#thoughtin{min-height:52px;border-radius:10px;font-size:14.5px;background:var(--bg);
+    transition:border-color .15s,box-shadow .15s}
+  .speak textarea:focus,.adder textarea:focus,#chatin textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+  .gen{background:var(--accent);border-radius:10px;font-size:13.5px;min-height:52px;box-shadow:0 6px 18px var(--glow)}
+  .sub{font-size:12.5px}
+  .prog{font-family:var(--mono);font-size:12px;letter-spacing:-.01em}
+  .col{background:transparent;border:0;padding:4px 2px;gap:8px}
+  .col h3{font-size:11.5px;letter-spacing:.09em;margin:0 6px 2px}
+  .col h3 .cname::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;
+    vertical-align:1px;background:var(--muted)}
+  .col[data-stage=started] h3 .cname::before{background:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+  .col[data-stage=completed] h3 .cname::before{background:var(--ok)}
+  .col h3 .cnt{font-family:var(--mono);font-size:11.5px}
+  .col.collapsed{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  .colbody{gap:8px}
+  .t{border-radius:12px;border-color:var(--line);box-shadow:var(--raise);transition:box-shadow .15s,border-color .15s,transform .15s}
+  .t:hover{border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+  .t.started{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow),var(--raise)}
+  .t.done{opacity:.6}
+  .icon{font-size:19px}
+  .ttl{font-size:14.5px;letter-spacing:-.01em}
+  .ttl b{font-weight:600}
+  .why{font-size:12px}
+  .count{font-family:var(--mono);font-size:11.5px}
+  .bar{height:3px;background:var(--line)}
+  .bar i{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  li{font-size:13.5px}
+  .chip{font-family:var(--mono);font-size:11.5px;background:transparent}
+  .timer{font-family:var(--mono);font-size:12px}
+  .act{border-radius:7px;font-size:12px;background:var(--ink);color:var(--bg)}
+  .t.started .act{background:var(--ok);color:#fff}
+  .newtask{border-radius:12px;min-height:44px;font-size:13.5px;color:var(--muted)}
+  .newtask:hover{color:var(--accent);border-color:var(--accent)}
+  .drop{border-radius:12px;font-size:12.5px}
+  .apptabs{background:var(--bg)}
+  .apptabs button.on{background:var(--panel);box-shadow:var(--raise)}
+  #chat{border-radius:14px;box-shadow:var(--raise)}
+  #chat .ch h2{font-size:14px}
+  .msg{font-size:13.5px;border-radius:12px}
+  .msg.you{background:var(--soft)}
+  #chatin button,#chatfab{background:var(--accent)}
+  .movebox{border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+  .topts button.on,.movebox .pick button{background:var(--accent);border-color:var(--accent)}
+  #toast{border-radius:10px;font-size:13px}
+  .gen,#chatin button,.act{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 88%,#fff),var(--accent));
+    box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 4px 12px var(--glow)}
+  .t.started .act{background:var(--ok)}
+  .thememenu{position:fixed;z-index:60;width:250px}
+  .thememenu button.day{display:flex;align-items:center;gap:10px}
+  .thememenu .sw3{display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--line);flex:none}
+  .thememenu .sw3 i{width:12px;height:18px;display:block}
+  .thememenu small{color:var(--muted);font-size:11.5px;margin-left:auto}
+  .thememenu .on{color:var(--accent);font-weight:650}
+
+  /* ===== Focus mode: only the task you're on, a big countdown, its steps. Esc leaves. ===== */
+  #focus{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;
+    padding:22px 20px 40px;overflow-y:auto}
+  #focus[hidden]{display:none}
+  #focus::before{content:"";position:fixed;inset:-20% -10% auto;height:70%;pointer-events:none;
+    background:radial-gradient(closest-side,var(--glow),transparent);opacity:.9}
+  .fx-top{position:relative;width:100%;max-width:640px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+  .fx-top b{font-family:var(--mono);font-weight:500;letter-spacing:.08em;text-transform:uppercase;font-size:11.5px}
+  .fx-body{position:relative;width:100%;max-width:640px;margin-top:6vh;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
+  .fx-stage{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+  .fx-title{font-size:clamp(22px,4vw,34px);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:4px 0 0;text-wrap:balance}
+  .fx-why{color:var(--muted);font-size:14px}
+  .fx-ring{position:relative;width:min(280px,70vw);aspect-ratio:1;margin:22px 0 10px}
+  .fx-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .fx-ring circle{fill:none;stroke-width:6}
+  .fx-ring .trk{stroke:var(--line)} .fx-ring .val{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .6s}
+  .fx-ring.over .val{stroke:var(--over)}
+  .fx-clock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .fx-clock b{font-family:var(--mono);font-weight:500;font-size:clamp(40px,8vw,58px);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+  .fx-clock span{font-size:12.5px;color:var(--muted)}
+  .fx-ring.over .fx-clock b{color:var(--over)}
+  .fx-steps{list-style:none;padding:0;margin:14px 0 0;width:100%;max-width:440px;text-align:left}
+  .fx-steps li{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:6px;font-size:14.5px}
+  .fx-steps li.done span{text-decoration:line-through;color:var(--muted)}
+  .fx-acts{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center}
+  .fx-acts .btn{padding:9px 18px;font-size:14px}
+  .fx-nav{display:flex;gap:6px;margin-left:auto}
+  @media (prefers-reduced-motion:reduce){.fx-ring .val,.t{transition:none}}
+
+  /* Readability: bigger text everywhere. */
+  body{font-size:16px} h2{font-size:16px} .ttl{font-size:16px} li{font-size:15px} .why{font-size:13px}
+  .chip,.timer{font-size:12.5px} .col h3{font-size:12px} .msg{font-size:14px}
+  /* Simple view (default; user, 2026-10-13: "too much wording"): cards show title, time and steps only, helper
+     text goes, the plan box is one line, goals sit on one line. ☰ Detailed in the header shows everything. */
+  .simple .t .why,.simple .t .count,.simple .t .bar,.simple .sub,.simple .prog{display:none}
+  .simple .t .add{opacity:0;transition:opacity .15s} .simple .t:hover .add{opacity:1}
+  .simple .t ul{margin-top:8px}
+  .simple .card:has(#speak){padding:12px 14px}
+  .simple .card:has(#speak) h2{display:none}
+  .simple .speak textarea{min-height:46px;height:46px}
+  .simple .speak .gen{min-height:46px}
+  .simple .card:has(#goals){padding:10px 18px;display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap}
+  .simple .card:has(#goals) h2{margin:0;font-size:13px;color:var(--muted);font-weight:600}
+  .simple .goals{display:flex;gap:6px 18px;flex-wrap:wrap}
+  .simple .goals li{padding:0}
+  .simple #goaladd .add{padding:0}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="mark" aria-hidden="true"></span>Planner</h1>
+  <nav class="apptabs" aria-label="Sections"><button data-tab="today">Today</button><button data-tab="thoughts">💭 Thoughts</button></nav>
+  <select id="datesel" aria-label="Date"></select>
+  <div class="spacer"></div>
+  <button class="btn" id="viewbtn"></button>
+  <button class="btn primary" id="focusbtn" title="Focus on the task you're doing (F)">◎ Focus</button>
+  <button class="btn" id="theme" title="Choose a theme">◐ Auto</button>
+</header>
+<div id="focus" hidden role="dialog" aria-label="Focus mode"><div class="fx-top"><b>Focus</b><span id="fxpos"></span><div class="fx-nav"><button class="btn" id="fxprev" title="Previous task">‹</button><button class="btn" id="fxnext" title="Next task">›</button><button class="btn" id="fxclose" title="Leave focus (Esc)">Esc</button></div></div><div class="fx-body" id="fxbody"></div></div>
+<main>
+<div id="p-today">
+  <div class="card">
+    <h2>🎙️ Say what you're doing today</h2>
+    <div class="speak">
+      <textarea id="speak" placeholder="Press Fn twice to dictate. e.g. 'Today I want to test the hourly recap, build the Remotion edit, and finish the daily page.'"></textarea>
+      <button class="gen" id="gen">✨ Make my task list</button>
+    </div>
+    <p class="sub">Claude turns it into a few big tasks, each with small steps. To add one thing later, use <b>+ Add task</b> below: it makes one new card and leaves the rest alone.</p>
+  </div>
+  <div class="card">
+    <h2>🎯 Today's goals</h2>
+    <ul class="goals" id="goals"></ul>
+    <div id="goaladd"></div>
+  </div>
+  <div class="card">
+    <h2>Today's tasks <span class="prog" id="prog"></span></h2>
+    <div class="board" id="grid"></div>
+  </div>
+</div>
+<div id="p-thoughts" hidden>
+  <div class="card">
+    <h2>💭 Thoughts</h2>
+    <div class="speak">
+      <textarea id="thoughtin" placeholder="Dump a rough thought. Press Fn twice to dictate. ⌘ + Enter saves."></textarea>
+      <button class="gen" id="thoughtsave">Save</button>
+    </div>
+    <p class="sub">One running list across all days, newest first. Click a thought to edit it.</p>
+  </div>
+  <div class="card"><div id="thoughtlist"><p class="empty">Loading…</p></div></div>
+</div>
+</main>
+<aside id="chat" aria-label="Chat center">
+  <div class="ch"><h2>💬 Chat center <button class="btn" id="chatclose" title="Hide chat">✕</button></h2>
+    <div class="goto">Goes to <select id="agentsel"></select><span class="st" id="agentst"></span></div></div>
+  <div id="thread"></div>
+  <div id="chatin"><textarea id="chattext" placeholder="Ask Claude about today, or ask it to change your tasks…"></textarea><button id="chatsend">Send</button></div>
+</aside>
+<button id="chatfab">💬 Chat</button>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S=null, cur=null;
+const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});
+  const j=await r.json(); if(!r.ok) throw new Error(j.error||r.status); return j};
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2600)};
+
+// Themes: [key, name, note, swatch colours (bg, panel, accent)]. Picked per browser (dt-skin).
+const THEMES=[['auto','Auto','follows your Mac',['#f7f8fb','#101217','#4c5fe0']],
+  ['motion-light','Motion Light','',['#f7f8fb','#ffffff','#4c5fe0']],['motion-dark','Motion Dark','',['#101217','#191c22','#7d8dff']],
+  ['paper','Paper','warm',['#f4eee2','#fdf9f1','#b0523a']],['graphite','Graphite','dark, minimal',['#0e0f11','#17191c','#3ecf8e']],
+  ['nord','Nord','calm blue-grey',['#e8ecf2','#f6f8fb','#5e81ac']]];
+function applyTheme(k){const R=document.documentElement;if(!THEMES.some(t=>t[0]===k))k='auto';
+  delete R.dataset.theme;delete R.dataset.skin;
+  if(k==='motion-light')R.dataset.theme='light';
+  if(k==='motion-dark')R.dataset.theme='dark';
+  if(k==='paper'||k==='nord'){R.dataset.skin=k;R.dataset.theme='light'}
+  if(k==='graphite'){R.dataset.skin=k;R.dataset.theme='dark'}
+  try{localStorage.setItem('dt-skin',k)}catch(e){}
+  $('#theme').textContent='◐ '+THEMES.find(t=>t[0]===k)[1]}
+{let k='auto';try{k=localStorage.getItem('dt-skin')||({light:'motion-light',dark:'motion-dark'})[localStorage.getItem('theme')]||'auto'}catch(e){}applyTheme(k)}
+$('#theme').onclick=e=>{e.stopPropagation();document.querySelector('.movebox')?.remove();
+  let cur='auto';try{cur=localStorage.getItem('dt-skin')||'auto'}catch(e){}
+  const box=document.createElement('div');box.className='movebox thememenu';
+  box.innerHTML='<b>Theme</b>'+THEMES.map(([k,n,note,c])=>`<button class="day ${k===cur?'on':''}" data-skin="${k}"><span class="sw3">${c.map(x=>`<i style="background:${x}"></i>`).join('')}</span>${n}${note?`<small>${note}</small>`:''}</button>`).join('');
+  document.body.appendChild(box);const r=e.currentTarget.getBoundingClientRect();
+  box.style.top=(r.bottom+6)+'px';box.style.left=Math.max(8,r.right-250)+'px';
+  box.querySelectorAll('[data-skin]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();applyTheme(b.dataset.skin);box.remove()});
+  box.onclick=ev=>ev.stopPropagation();
+  setTimeout(()=>document.addEventListener('click',function off(){box.remove();document.removeEventListener('click',off)}),0)};
+
+// Simple / Detailed view (user, 2026-10-13: "a button to show everything detailed and a button to shorten stuff").
+const SPK=$('#speak').placeholder;
+function setView(v){const simple=v!=='detailed';document.documentElement.classList.toggle('simple',simple);
+  $('#viewbtn').textContent=simple?'☰ Detailed':'≡ Simple';$('#viewbtn').title=simple?'Show everything':'Show less';
+  $('#speak').placeholder=simple?'What are you doing today?  (Fn twice to dictate)':SPK;
+  try{localStorage.setItem('dt-view',simple?'simple':'detailed')}catch(e){}}
+$('#viewbtn').onclick=()=>setView(document.documentElement.classList.contains('simple')?'detailed':'simple');
+{let v='simple';try{v=localStorage.getItem('dt-view')||'simple'}catch(e){}setView(v)}
+
+const nice=d=>new Date(d+'T12:00').toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'});
+async function load(d){S=await api('/api/state'+(d?`?date=${d}`:''));cur=S.list.date;render()}
+const tasks=()=>S.list.tasks;
+const goals=()=>(S.list.goals??=[]);
+async function saveGoals(){await api('/api/goals',{date:cur,goals:goals()});render()}
+async function persist(){await api('/api/tasks',{date:cur,tasks:tasks()});render()}
+
+const STAGES=[['planned','Planned'],['started','Started'],['completed','Completed']];
+let HID=new Set(); try{HID=new Set(JSON.parse(localStorage.getItem('dt-hidden')||'[]'))}catch(e){}
+function toggleCol(k){HID.has(k)?HID.delete(k):HID.add(k);try{localStorage.setItem('dt-hidden',JSON.stringify([...HID]))}catch(e){}render()}
+// Cards made before the board have no stage: all steps ticked means Completed, otherwise Planned.
+const stageOf=t=>t.stage||(t.steps.length&&t.steps.every(x=>x.done)?'completed':'planned');
+const fmtMin=m=>{m=Math.round(m);const h=Math.floor(m/60),r=m%60;return h?`${h}h${r?' '+r+'m':''}`:`${r}m`};
+// "45", "45m", "1h", "1h30", "1h 30m", "1.5h" → minutes
+const parseMin=v=>{v=v.trim().toLowerCase();let m=v.match(/^(\d+(?:\.\d+)?)\s*h(?:ours?|rs?)?\s*(?:(\d+)\s*m?(?:in|ins|inutes)?)?$/);
+  if(m)return Math.round(parseFloat(m[1])*60+(+m[2]||0));m=v.match(/^(\d+)\s*(?:m|min|mins|minutes)?$/);return m?+m[1]:null};
+// Pause freezes the clock at paused_at; resume moves started_at forward by the paused time,
+// so every timer below stays "now minus started_at" and Completed's "took" leaves pauses out.
+const nowOf=t=>t.paused_at?Date.parse(t.paused_at):Date.now();
+function resume(t){if(!t.paused_at)return;t.started_at=new Date(Date.parse(t.started_at)+Date.now()-Date.parse(t.paused_at)).toISOString();delete t.paused_at}
+function setStage(t,st){resume(t);t.stage=st;
+  if(st==='planned'){delete t.started_at;delete t.done_at}
+  if(st==='started'){t.started_at??=new Date().toISOString();delete t.done_at}
+  if(st==='completed'){t.done_at=new Date().toISOString()}}
+// Started: counts down the time limit and turns red past it. Completed: how long it took.
+function timer(t){const st=stageOf(t);
+  if(st==='started'&&t.started_at){const used=(nowOf(t)-Date.parse(t.started_at))/60000,left=(t.minutes||0)-used,p=t.paused_at?'paused · ':'';
+    if(!t.minutes)return{txt:`${p}${fmtMin(used)} so far`,cls:p?'paused':''};
+    return left>=0?{txt:`${p}${fmtMin(Math.max(1,left))} left`,cls:p?'paused':''}:{txt:`${p}${fmtMin(-left)} over`,cls:'over'}}
+  if(st==='completed'&&t.started_at&&t.done_at)return{txt:`took ${fmtMin(Math.max(1,(Date.parse(t.done_at)-Date.parse(t.started_at))/60000))}`,cls:'took'};
+  return null}
+// Restart timer takes two clicks: the first arms it for three seconds. Resets started_at to now.
+function wireRestart(root){root.querySelectorAll('[data-rs]').forEach(b=>b.onclick=e=>{e.stopPropagation();
+  if(!b.classList.contains('armed')){const was=b.textContent;b.classList.add('armed');b.textContent='Restart?';
+    setTimeout(()=>{b.classList.remove('armed');b.textContent=was},3000);return}
+  const t=tasks()[b.dataset.rs];t.started_at=new Date().toISOString();delete t.paused_at;persist();toast('Timer restarted')})}
+// Pause / resume: one click, nothing is lost.
+function wirePause(root){root.querySelectorAll('[data-pz]').forEach(b=>b.onclick=e=>{e.stopPropagation();const t=tasks()[b.dataset.pz];
+  if(t.paused_at)resume(t);else t.paused_at=new Date().toISOString();persist()})}
+function cardHTML(t,i){const ok=t.steps.filter(x=>x.done).length, st=stageOf(t), tm=timer(t);
+  return `<div class="t ${st==='completed'?'done':''} ${st}" data-drag="task" data-i="${i}">
+    <div class="head"><span class="grip" title="Drag to move">⠿</span><span class="icon">${esc(t.icon)}</span><div class="ttl"><b data-edit="title" data-t="${i}">${esc(t.title)}</b><span class="why" data-edit="why" data-t="${i}">${esc(t.why)}</span></div>
+      <span class="count">${ok}/${t.steps.length}</span><button class="x mv" data-mv="${i}" title="Move to another day">→</button><button class="x" data-dt="${i}" title="Remove task">×</button></div>
+    <div class="tmeta"><button class="chip" data-tm="${i}" title="Time limit. Click to change">⏱ ${t.minutes?fmtMin(t.minutes):'set time'}</button>
+      ${tm?`<span class="timer ${tm.cls}" data-timer="${i}">${tm.txt}</span>`:''}
+      ${st==='started'&&t.started_at?`<button class="rs" data-pz="${i}" title="${t.paused_at?'Resume the timer':'Pause the timer'}">${t.paused_at?'▶':'⏸'}</button><button class="rs" data-rs="${i}" title="Restart the timer from now">↺</button>`:''}
+      ${st==='started'?`<button class="x" style="opacity:1" data-focus="${i}" title="Focus on this">◎</button>`:''}
+      ${st==='planned'?`<button class="act" data-go="started" data-i="${i}">▶ Start</button>`:st==='started'?`<button class="act" data-go="completed" data-i="${i}">✓ Done</button>`:''}</div>
+    <div class="bar"><i style="width:${t.steps.length?100*ok/t.steps.length:0}%"></i></div>
+    <ul>${t.steps.map((x,j)=>`<li class="${x.done?'done':''}" data-drag="step" data-t="${i}" data-s="${j}"><span class="grip" title="Drag to move">⠿</span><input type="checkbox" data-t="${i}" data-s="${j}" ${x.done?'checked':''}>
+      <span data-edit="step" data-t="${i}" data-s="${j}">${esc(x.text)}</span><button class="x" data-t="${i}" data-ds="${j}" title="Remove step">×</button></li>`).join('')}</ul>
+    <button class="add" data-add="${i}">+ step</button></div>`}
+setInterval(()=>{if(!S)return;document.querySelectorAll('[data-timer]').forEach(el=>{const tm=timer(tasks()[el.dataset.timer]);
+  if(tm){el.textContent=tm.txt;el.className='timer '+tm.cls}})},20000);
+
+function render(){
+  $('#datesel').innerHTML=S.dates.map(d=>`<option value="${d}" ${d===cur?'selected':''}>${d===S.today?'Today · ':''}${nice(d)}</option>`).join('');
+  $('#goals').innerHTML=goals().map((g,i)=>`<li class="${g.done?'done':''}"><input type="checkbox" data-g="${i}" ${g.done?'checked':''}>
+    <span data-edit="goal" data-i="${i}">${esc(g.text)}</span><button class="x" data-dg="${i}" title="Remove goal">×</button></li>`).join('')
+    ||'<li class="empty" style="padding:4px 0">No goals yet. Type what would make today a win.</li>';
+  $('#goaladd').innerHTML='<button class="add" id="addgoal">+ goal</button>';
+  let dn=0,all=0,mins=0;
+  tasks().forEach(t=>{dn+=t.steps.filter(x=>x.done).length;all+=t.steps.length;if(stageOf(t)!=='completed')mins+=t.minutes||0});
+  $('#grid').innerHTML=STAGES.map(([k,lab])=>{const ix=tasks().map((t,i)=>i).filter(i=>stageOf(tasks()[i])===k);
+    const m=ix.reduce((a,i)=>a+(tasks()[i].minutes||0),0);
+    const h=HID.has(k);
+    return `<section class="col${h?' collapsed':''}" data-stage="${k}" ${h?`title="Show ${lab}"`:''}><h3><span class="cname">${lab}</span><span class="cnt">${ix.length}${m&&!h?' · '+fmtMin(m):''}</span>
+        <button class="colhide" data-hide="${k}" title="${h?'Show':'Hide'} ${lab}">${h?'⇔':'–'}</button></h3>
+      <div class="colbody">${ix.map(i=>cardHTML(tasks()[i],i)).join('')}<p class="drop">${!tasks().length&&k==='planned'?'No tasks yet. Say your plan above, or add one.':'Drop a task here'}</p></div>
+      ${k==='planned'?'<button class="newtask" id="newtask">+ Add task</button>':''}</section>`}).join('');
+  $('#grid').style.setProperty('--cols',STAGES.map(([k])=>HID.has(k)?'46px':'minmax(0,1fr)').join(' '));
+  $('#prog').textContent=all?`· ${dn} of ${all} steps done${mins?' · '+fmtMin(mins)+' left to do':''}`:'';
+  wire(); drawFocus();
+}
+
+// val pre-fills the box when editing; empty=true lets a field be cleared (the "why" line).
+function inline(host,ph,done,val='',empty=false){const i=document.createElement('input');i.className='inl';i.placeholder=ph;i.value=val;host.replaceWith(i);i.focus();
+  let fired=false;const fin=()=>{if(fired)return;fired=true;const v=i.value.trim();(v||empty)&&v!==val?done(v):render()};
+  i.onkeydown=e=>{if(e.key==='Enter')fin();if(e.key==='Escape'){fired=true;render()}};i.onblur=fin}
+
+// Move a card to another day. The shortcuts cover what's actually used (next/previous day,
+// back to today); the date box handles anything else, including a day with no file yet.
+const shift=(d,n)=>{const x=new Date(d+'T12:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+// Time limit picker (user, 2026-10-13: "clickable options, multiples of 15 minutes"): 15m … 3h, or type another.
+function timeBox(chip,i){
+  document.querySelector('.movebox')?.remove();
+  const t=tasks()[i], box=document.createElement('div'); box.className='movebox timebox';
+  box.innerHTML=`<b>Time limit</b><div class="topts">${Array.from({length:12},(_,k)=>(k+1)*15)
+      .map(m=>`<button data-m="${m}" class="${m===t.minutes?'on':''}">${m<60?m+'m':Math.floor(m/60)+'h'+(m%60||'')}</button>`).join('')}</div>
+    <div class="pick"><input placeholder="Other, e.g. 4h" aria-label="Other time limit"><button>Set</button></div>`;
+  chip.closest('.t').appendChild(box);
+  box.style.top=(chip.offsetTop+chip.offsetHeight+6)+'px'; box.style.left=chip.offsetLeft+'px';
+  const set=m=>{box.remove(); if(!m||m>1440) return toast('Try 45m or 1h30'); t.minutes=m; persist()};
+  box.querySelectorAll('[data-m]').forEach(b=>b.onclick=e=>{e.stopPropagation();set(+b.dataset.m)});
+  const inp=box.querySelector('input');
+  box.querySelector('.pick button').onclick=e=>{e.stopPropagation();set(parseMin(inp.value))};
+  inp.onkeydown=e=>{if(e.key==='Enter')set(parseMin(inp.value));if(e.key==='Escape')box.remove()};
+  box.onclick=e=>e.stopPropagation();
+  setTimeout(()=>document.addEventListener('click',function off(){box.remove();document.removeEventListener('click',off)}),0);
+}
+
+function moveBox(btn,i){
+  document.querySelector('.movebox')?.remove();
+  // Candidates are the days either side of the one being viewed, plus today. They're
+  // de-duplicated and named against the real today, so viewing the 23rd never offers
+  // "Tomorrow" and "Today" as two buttons for the same date.
+  const rel=d=>d===S.today?'Today':d===shift(S.today,1)?'Tomorrow':d===shift(S.today,-1)?'Yesterday':'';
+  const opts=[...new Set([S.today,shift(cur,1),shift(cur,-1)])].filter(d=>d!==cur)
+    .map(d=>[rel(d),d]).sort((a,b)=>a[1].localeCompare(b[1]));
+  const box=document.createElement('div');
+  box.className='movebox';
+  box.innerHTML=`<b>Move “${esc(tasks()[i].title)}” to</b>`
+    +opts.map(([lab,d])=>`<button class="day" data-to="${d}">${lab?lab+' · ':''}${nice(d)}</button>`).join('')
+    +`<div class="pick"><input type="date" value="${shift(cur,1)}"><button>Move</button></div>`;
+  const card=btn.closest('.t');
+  card.appendChild(box);
+  box.style.top=(btn.offsetTop+btn.offsetHeight+6)+'px';
+  box.style.right='10px';
+  const go=async to=>{
+    if(!to) return;
+    box.remove();
+    try{ S=await api('/api/move',{date:cur,to,index:i}); render(); toast(`Moved to ${nice(to)}`); }
+    catch(e){ toast(e.message); }
+  };
+  box.querySelectorAll('[data-to]').forEach(b=>b.onclick=e=>{e.stopPropagation();go(b.dataset.to)});
+  const inp=box.querySelector('input[type=date]');
+  box.querySelector('.pick button').onclick=e=>{e.stopPropagation();go(inp.value)};
+  inp.onkeydown=e=>{if(e.key==='Enter')go(inp.value)};
+  box.onclick=e=>e.stopPropagation();
+  setTimeout(()=>document.addEventListener('click',function off(){box.remove();document.removeEventListener('click',off)}),0);
+}
+
+function wire(){
+  document.querySelectorAll('#grid input[type=checkbox]').forEach(c=>c.onchange=()=>{const t=tasks()[c.dataset.t];t.steps[c.dataset.s].done=c.checked;
+    const full=t.steps.every(x=>x.done);
+    if(full&&stageOf(t)!=='completed'){setStage(t,'completed');toast(`“${t.title}” is done`)}
+    else if(!full&&stageOf(t)==='completed')setStage(t,t.started_at?'started':'planned');
+    persist()});
+  document.querySelectorAll('[data-hide]').forEach(b=>b.onclick=e=>{e.stopPropagation();toggleCol(b.dataset.hide)});
+  document.querySelectorAll('.col.collapsed').forEach(c=>c.onclick=()=>toggleCol(c.dataset.stage));
+  document.querySelectorAll('[data-focus]').forEach(b=>b.onclick=()=>openFocus(+b.dataset.focus));
+  wireRestart(document);wirePause(document);
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{setStage(tasks()[b.dataset.i],b.dataset.go);persist()});
+  document.querySelectorAll('[data-ds]').forEach(b=>b.onclick=()=>{tasks()[b.dataset.t].steps.splice(+b.dataset.ds,1);persist()});
+  document.querySelectorAll('[data-dt]').forEach(b=>b.onclick=()=>{tasks().splice(+b.dataset.dt,1);persist()});
+  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>inline(b,'New step, then Enter',v=>{tasks()[b.dataset.add].steps.push({text:v,done:false});persist()}));
+  $('#newtask').onclick=e=>adder(e.currentTarget);
+  document.querySelectorAll('[data-g]').forEach(c=>c.onchange=()=>{goals()[c.dataset.g].done=c.checked;saveGoals()});
+  document.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{goals().splice(+b.dataset.dg,1);saveGoals()});
+  // Click any text to edit it in place: Enter or clicking away saves, Esc cancels.
+  document.querySelectorAll('[data-edit]').forEach(el=>el.onclick=()=>{const k=el.dataset.edit,t=tasks()[el.dataset.t];
+    if(k==='goal') inline(el,'Goal',v=>{goals()[el.dataset.i].text=v;saveGoals()},goals()[el.dataset.i].text);
+    if(k==='title') inline(el,'Task title',v=>{t.title=v;persist()},t.title);
+    if(k==='why') inline(el,"What it's for (optional)",v=>{t.why=v;persist()},t.why,true);
+    if(k==='step') inline(el,'Step',v=>{t.steps[el.dataset.s].text=v;persist()},t.steps[el.dataset.s].text);
+  });
+  document.querySelectorAll('[data-tm]').forEach(b=>b.onclick=e=>{e.stopPropagation();timeBox(b,+b.dataset.tm)});
+  $('#addgoal').onclick=e=>inline(e.currentTarget,'Type a goal, then Enter',v=>{goals().push({text:v,done:false});saveGoals()});
+  document.querySelectorAll('[data-mv]').forEach(b=>b.onclick=e=>{e.stopPropagation();moveBox(b,+b.dataset.mv)});
+  // Only the grip starts a drag, so ticking and selecting text still work normally.
+  document.querySelectorAll('.grip').forEach(g=>{const el=g.closest('[data-drag]');
+    g.onmousedown=()=>el.draggable=true; g.onmouseup=()=>el.draggable=false});
+}
+
+// Drag and drop: cards reorder among cards; steps reorder within a card or move to another.
+// The DOM is rearranged live while dragging, then the new order is read back and saved.
+let drag=null;
+const grid=$('#grid');
+grid.addEventListener('dragstart',e=>{const el=e.target.closest?.('[data-drag]');if(!el||!el.draggable)return;
+  e.stopPropagation();drag=el;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','')});
+grid.addEventListener('dragover',e=>{if(!drag)return;e.preventDefault();
+  if(drag.dataset.drag==='task'){const t=e.target.closest('.t');
+    if(t&&t!==drag){const r=t.getBoundingClientRect();t.parentNode.insertBefore(drag,e.clientY<r.top+r.height/2?t:t.nextSibling)}
+    else if(!t){const body=e.target.closest('.col')?.querySelector('.colbody');if(body&&drag.parentNode!==body)body.insertBefore(drag,body.querySelector('.drop'))}}
+  else{const li=e.target.closest('li[data-drag]');
+    if(li&&li!==drag){const r=li.getBoundingClientRect();li.parentNode.insertBefore(drag,e.clientY<r.top+r.height/2?li:li.nextSibling)}
+    else if(!li){const ul=e.target.closest('.t')?.querySelector('ul');if(ul&&drag.parentNode!==ul)ul.appendChild(drag)}}});
+grid.addEventListener('drop',e=>{if(drag)e.preventDefault()});
+grid.addEventListener('dragend',()=>{if(!drag)return;const moved=drag;drag.draggable=false;drag.classList.remove('dragging');drag=null;
+  const old=tasks();
+  // If the board was redrawn mid-drag, the dragged node sits beside a fresh copy of itself (2026-10-13: a card
+  // saved twice). Keep the dragged one, the copy's position is stale. Only when it's really on the board, or the
+  // filter would drop the only copy.
+  const same=(el,key)=>grid.contains(moved)&&el!==moved&&el.dataset.drag===moved.dataset.drag&&key(el)===key(moved);
+  const ti=el=>el.dataset.i, si=el=>el.dataset.t+'/'+el.dataset.s;
+  S.list.tasks=[...grid.querySelectorAll('.col')].flatMap(col=>[...col.querySelectorAll('.t[data-drag]')].filter(c=>!same(c,ti)).map(c=>{
+    const t={...old[c.dataset.i],steps:[...c.querySelectorAll('li[data-drag]')].filter(l=>!same(l,si)).map(l=>old[l.dataset.t].steps[l.dataset.s])};
+    if(stageOf(t)!==col.dataset.stage)setStage(t,col.dataset.stage);
+    return t}));
+  persist()});
+
+// Dictate one task; Claude turns just that into a card with steps and appends it.
+function adder(host){
+  const w=document.createElement('div');w.className='adder';
+  w.innerHTML=`<textarea placeholder="Press Fn twice and say the task. e.g. 'Fix the login bug on app 4.'"></textarea>
+    <button class="gen">✨ Add</button><button class="btn">Cancel</button>`;
+  host.replaceWith(w);const [ta,go,no]=w.children;ta.focus();
+  no.onclick=render;ta.onkeydown=e=>{if(e.key==='Escape')render()};
+  go.onclick=async()=>{const text=ta.value.trim();if(!text)return toast('Say the task first');
+    go.disabled=ta.disabled=true;go.textContent='✨ Writing…';
+    try{S=await api('/api/add',{date:cur,text});render();toast('Task added')}
+    catch(e){toast(e.message);go.disabled=ta.disabled=false;go.textContent='✨ Add'}};
+}
+
+$('#gen').onclick=async()=>{const text=$('#speak').value.trim(); if(!text) return toast('Say or type your plan first');
+  const b=$('#gen'); b.disabled=true; b.textContent='✨ Writing your tasks…';
+  try{S=await api('/api/generate',{date:cur,text});$('#speak').value='';render();toast('Task list ready')}catch(e){toast(e.message)}
+  b.disabled=false; b.textContent='✨ Make my task list'};
+$('#datesel').onchange=e=>{$('#speak').value='';load(e.target.value);setTimeout(pollChat,50)};
+
+// ---- Chat center: one thread per day. Messages wake the session in "Goes to"; it answers with chat.py.
+// Statuses: sent → working → done. If Claude changes the day's tasks, the list reloads (unless you're editing).
+let CHAT=[], VER=0, AG={agents:[],chosen:null};
+const when=t=>new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+function drawChat(){const th=$('#thread'); const atEnd=th.scrollHeight-th.scrollTop-th.clientHeight<40;
+  th.innerHTML=CHAT.length?CHAT.map(m=>`<div class="msg ${m.from}">${esc(m.text)}<span class="meta">${m.from==='you'?'You':'Claude'} · ${when(m.t)}`+
+    (m.from==='you'?` · <b class="${m.status}">${m.status==='done'?'✓ done':m.status}</b>`:'')+`</span></div>`).join('')
+    :'<div class="empty">No messages for this day yet.<br>Ask Claude anything about your tasks.</div>';
+  if(atEnd)th.scrollTop=th.scrollHeight}
+async function pollChat(){if(!cur)return; try{const r=await api('/api/chat?date='+cur);
+  if(JSON.stringify(r.chat)!==JSON.stringify(CHAT)){CHAT=r.chat;drawChat()}
+  if(VER&&r.version!==VER&&!drag&&!document.querySelector('.movebox')&&!document.activeElement.closest('main')){S=await api('/api/state?date='+cur);render()}
+  VER=r.version}catch(e){}}
+async function pollAgents(){try{AG=await api('/api/agents')}catch(e){return}
+  const sel=$('#agentsel'); if(document.activeElement!==sel){
+    sel.innerHTML=(AG.chosen?'':'<option value="">— pick a session —</option>')+AG.agents.map(a=>`<option value="${esc(a.id)}" ${a.id===AG.chosen?'selected':''}>${esc(a.session)} · ${esc(a.name||'main session')} · ${esc((a.title||'').slice(0,32))}</option>`).join('')}
+  const a=AG.agents.find(x=>x.id===AG.chosen); const st=$('#agentst');
+  st.textContent=a?(a.status==='working'?'· busy':'· idle'):(AG.chosen?'· not running':''); st.className='st '+(a&&a.status==='working'?'working':'')}
+$('#agentsel').onchange=async e=>{if(!e.target.value)return; await api('/api/agent',{id:e.target.value}); toast('Chat now goes to '+e.target.selectedOptions[0].text); pollAgents()};
+async function sendChat(){const ta=$('#chattext'), text=ta.value.trim(); if(!text)return;
+  if(!AG.chosen)return toast('Pick a session in "Goes to" first');
+  const b=$('#chatsend'); b.disabled=true;
+  try{const r=await api('/api/chat',{date:cur,text}); CHAT=r.chat; ta.value=''; drawChat(); $('#thread').scrollTop=1e9;
+    if(!r.woke)toast("Saved, but the session didn't wake. Is it running?")}
+  catch(e){toast(e.message)} b.disabled=false}
+$('#chatsend').onclick=sendChat;
+$('#chattext').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}};
+const wide=()=>innerWidth>1100;
+function chatOff(off){document.documentElement.classList.toggle('chat-off',off);
+  try{off?localStorage.setItem('dt-chat-off','1'):localStorage.removeItem('dt-chat-off')}catch(e){}
+  dispatchEvent(new Event('resize'))}   // the width grips re-place themselves
+try{if(localStorage.getItem('dt-chat-off'))document.documentElement.classList.add('chat-off')}catch(e){}
+$('#chatfab').onclick=()=>{chatOff(false);if(!wide())$('#chat').classList.add('open')};
+$('#chatclose').onclick=()=>wide()?chatOff(true):$('#chat').classList.remove('open');
+pollAgents(); setInterval(pollAgents,5000);
+setInterval(()=>{const busy=CHAT.some(m=>m.from==='you'&&m.status!=='done'); if(busy||Date.now()%9000<3000)pollChat()},3000);
+drawChat(); setTimeout(pollChat,400);
+load();
+
+// ---- Focus mode (user, 2026-10-13: "easy to focus"): the task you're on, full screen. ----
+// Opens on the most recently started task, else the first planned one. ‹ › walk the unfinished tasks.
+let FX=null;
+const open_=()=>tasks().map((t,i)=>i).filter(i=>stageOf(tasks()[i])!=='completed');
+function focusPick(){const ts=tasks(), st=ts.map((t,i)=>i).filter(i=>stageOf(ts[i])==='started')
+    .sort((a,b)=>Date.parse(ts[b].started_at||0)-Date.parse(ts[a].started_at||0));
+  return st.length?st[0]:ts.findIndex(t=>stageOf(t)==='planned')}
+function openFocus(i){if(!S)return;FX=i??focusPick();
+  if(FX==null||FX<0||!tasks()[FX])return toast('Nothing to focus on yet. Add a task first');
+  $('#focus').hidden=false;drawFocus()}
+function closeFocus(){$('#focus').hidden=true;FX=null}
+const clock=sec=>{sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),x=sec%60;
+  return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')};
+function focusClock(t){const st=stageOf(t);
+  if(st==='started'&&t.started_at){const used=(nowOf(t)-Date.parse(t.started_at))/1000,p=t.paused_at?'paused · ':'';
+    if(!t.minutes)return{big:clock(used),small:p+'so far',pct:0,over:false};
+    const left=t.minutes*60-used;
+    return left>=0?{big:clock(left),small:`${p}left of ${fmtMin(t.minutes)}`,pct:1-left/(t.minutes*60),over:false}
+                  :{big:'+'+clock(-left),small:`${p}over ${fmtMin(t.minutes)}`,pct:1,over:true}}
+  if(st==='completed')return{big:'✓',small:timer(t)?.txt||'done',pct:1,over:false};
+  return{big:t.minutes?clock(t.minutes*60):'—',small:t.minutes?'ready when you are':'no time limit set',pct:0,over:false}}
+function drawFocus(){if($('#focus').hidden||FX==null)return;const t=tasks()[FX];if(!t)return closeFocus();
+  const st=stageOf(t), c=focusClock(t), C=2*Math.PI*46, ok=t.steps.filter(x=>x.done).length, ix=open_();
+  $('#fxpos').textContent=ix.includes(FX)?`${ix.indexOf(FX)+1} of ${ix.length} open`:'';
+  $('#fxbody').innerHTML=`<div class="fx-stage">${st==='started'?'In progress':st==='completed'?'Completed':'Planned'}</div>
+    <h2 class="fx-title">${esc(t.icon)} ${esc(t.title)}</h2>${t.why?`<div class="fx-why">${esc(t.why)}</div>`:''}
+    <div class="fx-ring ${c.over?'over':''}"><svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="46"/>
+      <circle class="val" cx="50" cy="50" r="46" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-c.pct)}"/></svg>
+      <div class="fx-clock"><b id="fxclock">${c.big}</b><span id="fxsmall">${c.small}</span></div></div>
+    <ul class="fx-steps">${t.steps.map((x,j)=>`<li class="${x.done?'done':''}"><input type="checkbox" data-fs="${j}" ${x.done?'checked':''}><span>${esc(x.text)}</span></li>`).join('')}</ul>
+    <div class="fx-acts">${st==='planned'?'<button class="gen" id="fxgo" style="min-height:44px">▶ Start</button>':
+      st==='started'?'<button class="gen" id="fxgo" style="min-height:44px;background:var(--ok)">✓ Done</button><button class="btn rs" data-pz="'+FX+'" style="min-height:44px">'+(t.paused_at?'▶ Resume':'⏸ Pause')+'</button><button class="btn rs" data-rs="'+FX+'" style="min-height:44px" title="Restart the timer from now">↺ Restart timer</button>':
+      (ix.length?'<button class="gen" id="fxnext2" style="min-height:44px">Next task →</button>':'<span class="sub">Everything is done. Nice.</span>')}
+      <span class="sub" style="align-self:center">${ok}/${t.steps.length} steps</span></div>`;
+  $('#fxbody').querySelectorAll('[data-fs]').forEach(cb=>cb.onchange=()=>{t.steps[cb.dataset.fs].done=cb.checked;
+    const full=t.steps.every(x=>x.done);
+    if(full&&stageOf(t)!=='completed'){setStage(t,'completed');toast(`“${t.title}” is done`)}
+    else if(!full&&stageOf(t)==='completed')setStage(t,t.started_at?'started':'planned');
+    persist()});
+  wireRestart($('#fxbody'));wirePause($('#fxbody'));
+  $('#fxgo')&&($('#fxgo').onclick=()=>{setStage(t,st==='planned'?'started':'completed');persist()});
+  $('#fxnext2')&&($('#fxnext2').onclick=()=>{FX=ix[0];drawFocus()})}
+function focusStep(d){const ix=open_();if(!ix.length)return;const k=ix.indexOf(FX);FX=ix[(k<0?0:k+d+ix.length)%ix.length];drawFocus()}
+$('#focusbtn').onclick=()=>openFocus();$('#fxclose').onclick=closeFocus;
+$('#fxprev').onclick=()=>focusStep(-1);$('#fxnext').onclick=()=>focusStep(1);
+document.addEventListener('keydown',e=>{const typing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
+  if(!$('#focus').hidden){if(e.key==='Escape')closeFocus();if(!typing&&e.key==='ArrowRight')focusStep(1);if(!typing&&e.key==='ArrowLeft')focusStep(-1);return}
+  if(!typing&&(e.key==='f'||e.key==='F')&&!e.metaKey&&!e.ctrlKey&&!$('#p-today').hidden)openFocus()});
+setInterval(()=>{if($('#focus').hidden||FX==null||!tasks()[FX])return;const t=tasks()[FX],c=focusClock(t),C=2*Math.PI*46;
+  $('#fxclock')&&($('#fxclock').textContent=c.big);$('#fxsmall')&&($('#fxsmall').textContent=c.small);
+  const v=$('#fxbody .val');v&&v.setAttribute('stroke-dashoffset',C*(1-c.pct));$('#fxbody .fx-ring')?.classList.toggle('over',c.over)},1000);
+
+// ---- Thoughts: one running list across all days (tasks/thoughts.json). Never sent to Claude. ----
+let TH=[];
+const localDay=()=>new Date().toLocaleDateString('en-CA');
+const dayLab=d=>d===localDay()?'Today':d===shift(localDay(),-1)?'Yesterday':nice(d);
+async function loadThoughts(){try{TH=(await api('/api/thoughts')).thoughts;drawThoughts()}catch(e){toast(e.message)}}
+function drawThoughts(){const L=$('#thoughtlist');
+  if(!TH.length){L.innerHTML='<p class="empty">No thoughts yet. Anything on your mind goes in the box above.</p>';return}
+  let last='',h='';
+  for(const x of TH){const d=x.t.slice(0,10);if(d!==last){h+=`<h3 class="thday">${dayLab(d)}</h3>`;last=d}
+    h+=`<div class="th" data-id="${esc(x.id)}"><span class="tt">${when(x.t)}${x.edited?' · edited':''}</span><div class="tx" title="Click to edit">${esc(x.text)}</div><button class="x" data-del="${esc(x.id)}" title="Delete">×</button></div>`}
+  L.innerHTML=h;
+  L.querySelectorAll('.tx').forEach(el=>el.onclick=()=>editThought(el));
+  // Delete takes two clicks: the first turns × into "Delete?" for three seconds.
+  L.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+    if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';
+      setTimeout(()=>{b.classList.remove('armed');b.textContent='×'},3000);return}
+    try{TH=(await api('/api/thoughts/delete',{id:b.dataset.del})).thoughts;drawThoughts();toast('Thought deleted')}catch(e){toast(e.message)}})}
+function editThought(el){const id=el.closest('.th').dataset.id, x=TH.find(y=>y.id===id);
+  const ta=document.createElement('textarea');ta.className='thedit';ta.value=x.text;el.replaceWith(ta);ta.focus();
+  ta.style.height=Math.max(64,ta.scrollHeight+4)+'px';
+  let done=false;
+  const fin=async save=>{if(done)return;done=true;const v=ta.value.trim();
+    if(save&&v&&v!==x.text){try{TH=(await api('/api/thoughts/edit',{id,text:v})).thoughts}catch(e){toast(e.message)}}
+    drawThoughts()};
+  ta.onkeydown=e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))fin(true);if(e.key==='Escape')fin(false)};ta.onblur=()=>fin(true)}
+async function addThought(){const ta=$('#thoughtin'),text=ta.value.trim();if(!text)return toast('Write a thought first');
+  const b=$('#thoughtsave');b.disabled=true;
+  try{TH=(await api('/api/thoughts/add',{text})).thoughts;ta.value='';drawThoughts();ta.focus()}catch(e){toast(e.message)}
+  b.disabled=false}
+$('#thoughtsave').onclick=addThought;
+$('#thoughtin').onkeydown=e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();addThought()}};
+function showTab(t){if(t!=='thoughts')t='today';
+  $('#p-today').hidden=t!=='today';$('#p-thoughts').hidden=t!=='thoughts';$('#datesel').hidden=t!=='today';
+  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  try{localStorage.setItem('dt-tab',t)}catch(e){}
+  if(t==='thoughts'){loadThoughts();setTimeout(()=>$('#thoughtin').focus(),0)}
+  dispatchEvent(new Event('resize'))}
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+{let t='today';try{t=localStorage.getItem('dt-tab')||'today'}catch(e){}showTab(t)}
+
+/* Column grips: the chat's left edge resizes the chat, the tasks' right edge resizes the tasks. */
+(()=>{const CK='dt-cols', DEF={chatw:360,mainw:1200}, LIM={chatw:[280,720],mainw:[560,2400]};
+  let W={...DEF}; try{Object.assign(W,JSON.parse(localStorage.getItem(CK)||'{}'))}catch(e){}
+  const R=document.documentElement, main=document.querySelector('main'), chat=$('#chat');
+  const apply=()=>{R.style.setProperty('--chatw',W.chatw+'px'); R.style.setProperty('--mainw',W.mainw+'px')};
+  const save=()=>{try{localStorage.setItem(CK,JSON.stringify(W))}catch(e){}};
+  const room=()=>document.body.clientWidth-parseFloat(getComputedStyle(document.body).paddingRight);
+  const g={};
+  const place=()=>{const c=chat.getBoundingClientRect(), m=main.getBoundingClientRect();
+    g.chatw.hidden=innerWidth<=1100||R.classList.contains('chat-off'); g.chatw.style.left=(c.left-12)+'px';
+    g.mainw.hidden=innerWidth<=820; g.mainw.style.left=(m.right-7)+'px'};
+  for(const k of ['chatw','mainw']){const el=g[k]=document.createElement('div');
+    el.className='colgrip'; el.title='Drag to resize · double-click to reset'; document.body.appendChild(el);
+    el.addEventListener('pointerdown',e=>{e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add('drag'); R.classList.add('colresize');
+      const x0=e.clientX, w0=(k==='chatw'?chat:main).getBoundingClientRect().width;
+      const mv=ev=>{const dx=ev.clientX-x0;
+        // the tasks are centred, so their right edge moves half as far as their width changes
+        let w=k==='chatw'?w0-dx:w0+2*dx, [lo,hi]=LIM[k]; if(k==='mainw')hi=Math.min(hi,room());
+        W[k]=Math.round(Math.max(lo,Math.min(hi,w))); apply(); place()};
+      const up=()=>{el.classList.remove('drag'); R.classList.remove('colresize');
+        el.removeEventListener('pointermove',mv); el.removeEventListener('pointerup',up); save()};
+      el.addEventListener('pointermove',mv); el.addEventListener('pointerup',up)});
+    el.addEventListener('dblclick',()=>{W[k]=DEF[k]; apply(); place(); save()})}
+  apply(); place(); addEventListener('resize',place); new ResizeObserver(place).observe(main)})();
+</script>
+</body>
+</html>

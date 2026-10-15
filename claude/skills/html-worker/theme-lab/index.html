@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Theme lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap">
+<style>
+  :root{--bg:#faf9f7;--panel:#fff;--ink:#1a1a18;--muted:#6b6b66;--faint:#9a9a94;
+    --line:#e4e2dd;--accent:#2d5f4f;--soft:#e8f0ec;--warn:#8a5a2b;--warnsoft:#f7efe4;
+    --quote:#f2f0eb;--s1:6px;--s2:8px;--s3:10px;--s4:12px;--s5:16px;--s6:24px;--s7:32px;
+    --r:10px;--r2:14px}
+  
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:var(--fs)/var(--lh) var(--font)}
+  h1,h2,h3{letter-spacing:-.015em}
+  header{position:sticky;top:0;z-index:60;background:var(--panel);
+    border-bottom:1px solid var(--line);padding:var(--s4) var(--s6);
+    display:flex;align-items:center;gap:var(--s5)}
+  header h1{font-size:15px;margin:0;font-weight:650}
+  .tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);
+    background:var(--soft);padding:3px var(--s2);border-radius:var(--s1);font-weight:650}
+  .spacer{flex:1}.count{font-size:13px;color:var(--muted)}
+  .layout{display:grid;grid-template-columns:206px minmax(0,1fr) 316px;gap:var(--s7);
+    max-width:1400px;margin:0 auto;padding:var(--s6) var(--s6) 140px}
+  @media(max-width:1200px){.layout{grid-template-columns:186px minmax(0,1fr)}aside.right{display:none}}
+  @media(max-width:820px){.layout{grid-template-columns:1fr}nav.toc{display:none}}
+  nav.toc{position:sticky;top:78px;align-self:start;max-height:calc(100vh - 110px);
+    overflow-y:auto;font-size:13px}
+  nav.toc .grp{color:var(--faint);text-transform:uppercase;letter-spacing:.07em;
+    font-size:10.5px;font-weight:700;margin:var(--s5) 0 var(--s2)}
+  nav.toc .grp:first-child{margin-top:0}
+  nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:5px var(--s3);
+    border-left:2px solid transparent;border-radius:0 var(--s1) var(--s1) 0}
+  nav.toc a.on{color:var(--accent);border-left-color:var(--accent);background:var(--soft);font-weight:600}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);
+    padding:var(--s6) 28px;margin-bottom:var(--s6);position:relative;scroll-margin-top:84px}
+  section:hover > .cbtn{opacity:1}
+  section > h2{font-size:21px;margin:0 0 var(--s1)}
+  .num{color:var(--faint);font-weight:600;font-size:14px;margin-right:var(--s2)}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 var(--s5)}
+  blockquote{margin:var(--s3) 0;padding:var(--s3) var(--s5);background:var(--quote);
+    border-left:2px solid var(--line);border-radius:0 var(--s2) var(--s2) 0;font-size:13.5px}
+  .plain{background:var(--soft);border-left:3px solid var(--accent);padding:var(--s3) var(--s5);
+    border-radius:0 var(--s2) var(--s2) 0;margin:var(--s4) 0;font-size:13.5px}
+  .plain b{color:var(--accent)}
+  .risk{background:var(--warnsoft);border-left:3px solid var(--warn);padding:var(--s3) var(--s5);
+    border-radius:0 var(--s2) var(--s2) 0;margin:var(--s4) 0;font-size:13.5px}
+  .risk b{color:var(--warn)}
+  .cbtn{position:absolute;top:var(--s5);right:var(--s5);opacity:0;transition:opacity .15s;
+    background:var(--bg);border:1px solid var(--line);color:var(--muted);font:inherit;
+    font-size:12px;padding:4px var(--s3);border-radius:var(--s2);cursor:pointer}
+  .cbtn:hover{color:var(--accent);border-color:var(--accent)}
+  .cbtn.has{opacity:1;color:var(--accent);border-color:var(--accent);background:var(--soft)}
+  .d{border:1px solid var(--line);border-radius:var(--r);padding:var(--s5) 18px;
+    margin:var(--s5) 0;position:relative}
+  .d:hover .cbtn{opacity:1}
+  .d.open{border-left:3px solid var(--accent)}
+  .q{font-weight:650;font-size:14.5px;margin-bottom:3px}
+  .why{color:var(--muted);font-size:13px;margin-bottom:var(--s4)}
+  label.opt{display:flex;gap:var(--s3);align-items:flex-start;padding:9px var(--s4);
+    border:1px solid transparent;border-radius:var(--s2);cursor:pointer;font-size:14px}
+  label.opt:hover{background:var(--bg)}
+  label.opt.sel{border-color:var(--accent);background:var(--soft)}
+  label.opt input{margin-top:3px;accent-color:var(--accent);flex:none}
+  .oh{font-weight:550}.od{color:var(--muted);font-size:12.5px;display:block;margin-top:1px}
+  .mm{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);
+    padding:18px;margin:var(--s4) 0;overflow-x:auto;text-align:center}
+  table.t{width:100%;border-collapse:collapse;font-size:13px;margin:var(--s4) 0}
+  table.t th,table.t td{border:1px solid var(--line);padding:var(--s2) var(--s3);
+    text-align:left;vertical-align:top}
+  table.t th{background:var(--bg);font-weight:650}
+  code{background:var(--quote);padding:1px 5px;border-radius:5px;font-size:12.5px}
+  pre.code{background:var(--quote);padding:var(--s5);border-radius:var(--r);
+    overflow-x:auto;font-size:12.5px;margin:var(--s4) 0}
+  details.ref{border:1px solid var(--line);border-radius:var(--r);padding:var(--s4) 18px;
+    margin:var(--s4) 0;background:var(--bg)}
+  details.ref summary{cursor:pointer;font-weight:650;font-size:14px;color:var(--accent)}
+  aside.right{position:sticky;top:78px;align-self:start;background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--r2);padding:var(--s5) 18px;
+    max-height:calc(100vh - 110px);display:flex;flex-direction:column}
+  aside.right h2{font-size:15px;margin:0}
+  .bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:9px}
+  .bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+  .dlist{overflow-y:auto;max-height:30vh;margin:var(--s3) -4px 0;padding:0 4px}
+  .dr{display:flex;gap:9px;align-items:center;padding:5px var(--s2);border-radius:var(--s1);
+    cursor:pointer;font-size:12.5px}
+  .dr:hover{background:var(--bg)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--line);flex:none}
+  .dr.done .dot{background:var(--accent)}
+  .dn{color:var(--muted);font-weight:700;flex:none}
+  .dr.todo .dv{color:var(--muted);font-style:italic}
+  #queue{flex:1;overflow-y:auto;margin:var(--s4) -4px;padding:0 4px;min-height:60px}
+  .qi{border:1px solid var(--line);border-radius:var(--s2);padding:var(--s3) var(--s4);
+    margin-bottom:9px;font-size:13px;background:var(--bg)}
+  .qa{color:var(--accent);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+    font-weight:700;margin-bottom:5px}
+  .qx{float:right;cursor:pointer;color:var(--muted);border:0;background:none;font-size:15px}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:var(--s6) var(--s3)}
+  button.primary{width:100%;background:var(--accent);color:#fff;border:0;padding:11px;
+    border-radius:var(--r);font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
+  #pop{position:absolute;z-index:100;width:328px;background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--r);padding:var(--s4);
+    box-shadow:0 10px 34px rgba(0,0,0,.18);display:none}
+  #pop .pa{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--accent);font-weight:700;margin-bottom:var(--s2)}
+  #pop textarea{width:100%;min-height:88px;border:1px solid var(--line);border-radius:var(--s2);
+    padding:9px;font:inherit;font-size:13.5px;background:var(--bg);color:var(--ink)}
+  #pop .row{display:flex;gap:var(--s2);margin-top:var(--s3)}
+  #pop button{flex:1;padding:var(--s2);border-radius:var(--s2);font:inherit;font-size:13px;
+    cursor:pointer;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+  #pop button.add{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:650}
+  #toast{position:fixed;bottom:var(--s6);left:50%;transform:translateX(-50%);
+    background:var(--ink);color:var(--bg);padding:var(--s3) 18px;border-radius:var(--s2);
+    font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:200}
+  #toast.on{opacity:1}
+  .flash{animation:fl 1.1s ease-out}
+  @keyframes fl{0%{background:var(--soft)}100%{background:transparent}}
+
+  /* ---- lab chrome (not part of the template) ---- */
+  #lab{position:sticky;top:0;z-index:80;background:var(--ink);color:var(--bg);padding:10px 24px;
+    display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  #lab label{display:flex;gap:6px;align-items:center;white-space:nowrap}
+  #lab select,#lab button{font:inherit;padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.08);color:inherit;cursor:pointer}
+  #lab .cr{display:flex;gap:14px;margin-left:auto;opacity:.85}
+  #lab .cr b{font-weight:600}
+  #lab .ok{color:#8fe3b0}#lab .aa{color:#f2d27a}#lab .bad{color:#ff9b8a}
+  header{top:var(--labh,44px)}
+  nav.toc,aside.right{top:calc(var(--labh,44px) + 78px)}
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:var(--s4) 0}
+  .sw{border:1px solid var(--line);border-radius:var(--r);padding:10px;cursor:pointer;font-size:12.5px}
+  .sw.on{outline:2px solid var(--accent);outline-offset:2px}
+  .sw .chips{display:flex;gap:4px;margin-top:6px}
+  .sw .chips i{flex:1;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.08)}
+  .sw b{display:block}
+  .sw small{color:var(--muted)}
+  #csscopy{white-space:pre;font-size:12px}
+</style>
+</head>
+<body>
+
+<div id="lab">
+  <label>Palette <select id="pal"></select></label>
+  <label>Font <select id="font"></select></label>
+  <label>Size <select id="size">
+    <option value="15|1.62">15px / 1.62</option>
+    <option value="16|1.65">16px / 1.65</option>
+    <option value="16|1.75">16px / 1.75 (airier)</option>
+    <option value="17|1.7">17px / 1.7</option>
+    <option value="18|1.7">18px / 1.7 (current)</option>
+  </select></label>
+  <label>Mode <select id="mode">
+    <option value="light">Light</option><option value="dark">Dark</option>
+  </select></label>
+  <button id="copy">Copy CSS for template</button>
+  <div class="cr" id="cr"></div>
+</div>
+
+<header>
+  <h1>Sample spec — app_3</h1>
+  <span class="tag">Round 2</span>
+  <div class="spacer"></div>
+  <span class="count">3/5 decided · 2 queued</span>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="grp">Problem</div>
+  <a class="on" href="#s-1">Who this is for</a>
+  <a href="#s-2">Evidence</a>
+  <div class="grp">Build</div>
+  <a href="#s-3">Stack decisions</a>
+  <a href="#s-4">Reference</a>
+</nav>
+<main>
+
+<section id="s-1" data-anchor="who" data-label="Who this is for">
+  <button class="cbtn">comment</button>
+  <h2><span class="num">0</span>Palettes at a glance</h2>
+  <p class="sub">Click a card to apply it. Every other block on this page is real template markup, so what you see is what a spec would look like.</p>
+  <div class="swatches" id="swatches"></div>
+</section>
+
+<section id="s-2" data-anchor="evidence" data-label="Evidence">
+  <button class="cbtn">comment</button>
+  <h2><span class="num">1</span>Who this is for</h2>
+  <p class="sub">The person, the moment, and what they are doing instead today.</p>
+  <p>Solo founders and two-person teams who bill through Stripe and want to know, without a spreadsheet, whether the last month was better or worse than the one before. They currently open the Stripe dashboard, screenshot the MRR chart, and paste it into a notes app. That works until the third month, when the screenshots stop being comparable.</p>
+  <p>Long paragraphs are the real test of a body font. This one has a few words worth reading twice: <code>state.json</code> is written only by the server; the exporter turns <code>data-radio</code> blocks into Markdown with the chosen option marked. If you can skim this without your eye snagging, the font and line height are doing their job.</p>
+  <blockquote>"I don't want a dashboard. I want to know if I should be worried." — interview 4, indie SaaS founder, $3.1k MRR</blockquote>
+  <div class="plain"><b>In plain words:</b> the product answers one question a month, and it has to be right.</div>
+  <div class="risk"><b>Risk:</b> Stripe's API rate limits make an hourly refresh across 10k users expensive. The worker must batch by account, not by user.</div>
+  <table class="t">
+    <tr><th>Competitor</th><th>Targets</th><th>Verified MRR</th><th>Top complaint</th></tr>
+    <tr><td>TrustMRR</td><td>Indie founders</td><td>$41k</td><td>Only Stripe, LemonSqueezy, Polar</td></tr>
+    <tr><td>Baremetrics</td><td>SaaS teams</td><td>—</td><td>Price jumps at $10k MRR</td></tr>
+    <tr><td>ProfitWell</td><td>Everyone</td><td>—</td><td>Slow to load; sold to Paddle</td></tr>
+  </table>
+</section>
+
+<section id="s-3" data-anchor="stack" data-label="Stack decisions">
+  <button class="cbtn">comment</button>
+  <h2><span class="num">2</span>Stack decisions</h2>
+  <p class="sub">Each block is one choice. Decisions save instantly; comments queue until you confirm.</p>
+  <div class="d open" data-anchor="d1" data-label="D1 refresh cadence">
+    <button class="cbtn has">commented</button>
+    <div class="q">D1 — How often do we pull from Stripe?</div>
+    <div class="why">Hourly matches TrustMRR. Daily is 24× cheaper and nobody checks MRR at 3am.</div>
+    <div data-radio="d1">
+      <label class="opt sel"><input type="radio" name="d1" value="daily" checked>
+        <span><span class="oh">Daily at 06:00 in the account's timezone</span><span class="od">Cheapest. Lag of up to a day is acceptable for a monthly question.</span></span></label>
+      <label class="opt"><input type="radio" name="d1" value="hourly">
+        <span><span class="oh">Hourly</span><span class="od">Parity with TrustMRR. Worker cost scales linearly with users.</span></span></label>
+      <label class="opt"><input type="radio" name="d1" value="webhook">
+        <span><span class="oh">Stripe webhooks, no polling</span><span class="od">Real-time and cheap, but webhook delivery failures become our problem.</span></span></label>
+    </div>
+  </div>
+  <div class="d" data-anchor="d2" data-label="D2 processors">
+    <button class="cbtn">comment</button>
+    <div class="q">D2 — Which payment processors at launch?</div>
+    <div class="why">Every extra processor is a second adapter to keep passing CI.</div>
+    <div data-check="d2">
+      <label class="opt sel"><input type="checkbox" name="d2" value="stripe" checked>
+        <span><span class="oh">Stripe</span><span class="od">Non-negotiable; 80% of the interviewees.</span></span></label>
+      <label class="opt"><input type="checkbox" name="d2" value="lemon">
+        <span><span class="oh">LemonSqueezy</span><span class="od">Merchant of record; popular with the EU indie crowd.</span></span></label>
+      <label class="opt"><input type="checkbox" name="d2" value="paddle">
+        <span><span class="oh">Paddle</span><span class="od">Bigger accounts, harder API.</span></span></label>
+    </div>
+  </div>
+  <pre class="code">GET /api/accounts/{id}/mrr?months=6
+→ 200 {"series":[{"month":"2026-03","mrr":310400,"delta":0.041}, …]}
+→ 429 Retry-After: 30   (per-account rate limit)</pre>
+</section>
+
+<section id="s-4" data-anchor="ref" data-label="Reference">
+  <button class="cbtn">comment</button>
+  <h2><span class="num">3</span>Reference</h2>
+  <details class="ref"><summary>What the exported Markdown looks like</summary>
+    <p>Decision blocks render with the recorded answer marked <b>→</b> and rejected options listed beneath, so the document shows what was chosen and what was turned down.</p>
+  </details>
+  <details class="ref" open><summary>CSS to paste into page-template.html</summary>
+    <pre class="code" id="csscopy"></pre>
+  </details>
+</section>
+
+</main>
+
+<aside class="right">
+  <h2>Decisions</h2>
+  <p class="sub" style="margin:2px 0 0">3 of 5 decided</p>
+  <div class="bar"><i style="width:60%"></i></div>
+  <div class="dlist">
+    <div class="dr done"><span class="dot"></span><span class="dn">D1</span><span class="dv">Daily at 06:00</span></div>
+    <div class="dr done"><span class="dot"></span><span class="dn">D2</span><span class="dv">Stripe</span></div>
+    <div class="dr todo"><span class="dot"></span><span class="dn">D3</span><span class="dv">not decided</span></div>
+  </div>
+  <h2 style="margin-top:16px">Feedback queue</h2>
+  <p class="sub" style="margin:2px 0 0">Nothing is sent until you confirm.</p>
+  <div id="queue">
+    <div class="qi"><button class="qx">×</button><div class="qa">D1 refresh cadence</div>Why not daily + webhook for the accounts that opt in?</div>
+    <div class="qi"><button class="qx">×</button><div class="qa">Evidence</div>Interview 4 quote is great — lead with it.</div>
+  </div>
+  <button class="primary">Confirm &amp; send round 2 — 2 comments</button>
+</aside>
+</div>
+
+<div id="toast" class="on" style="opacity:.0"></div>
+
+<script>
+const PALETTES = {
+  sage: {name:'Sage (previous)', note:'Warm off-white, green accent',
+    light:{bg:'#faf9f7',panel:'#fff',ink:'#1a1a18',muted:'#6b6b66',faint:'#9a9a94',line:'#e4e2dd',accent:'#2d5f4f',soft:'#e8f0ec',warn:'#8a5a2b',warnsoft:'#f7efe4',quote:'#f2f0eb'},
+    dark: {bg:'#151519',panel:'#1d1d22',ink:'#ecebe6',muted:'#9d9d97',faint:'#6e6e69',line:'#2d2d34',accent:'#7fc0a6',soft:'#213029',warn:'#d2a26c',warnsoft:'#2e261c',quote:'#24242b'}},
+  paper: {name:'Paper & Terracotta (current)', note:'Cream, brown ink, book-like',
+    light:{bg:'#f4eee2',panel:'#fdf9f1',ink:'#2a2521',muted:'#6a6157',faint:'#978d82',line:'#e3d9c7',accent:'#b0523a',soft:'#f5e4dc',warn:'#7a5a1e',warnsoft:'#f3ead3',quote:'#efe7d6'},
+    dark: {bg:'#1b1916',panel:'#242019',ink:'#ede4d6',muted:'#a89e8f',faint:'#766d60',line:'#38322a',accent:'#e28f72',soft:'#3b2a24',warn:'#dcb66e',warnsoft:'#302a1c',quote:'#2a2620'}},
+  slate: {name:'Slate & Blue', note:'Cool grey, navy ink, classic docs',
+    light:{bg:'#f5f7fa',panel:'#ffffff',ink:'#1b2330',muted:'#586372',faint:'#8792a0',line:'#dde3ea',accent:'#2457a8',soft:'#e6eef9',warn:'#9a5b12',warnsoft:'#fbf1e2',quote:'#eef1f5'},
+    dark: {bg:'#0f141a',panel:'#171d25',ink:'#e6ebf1',muted:'#9aa5b3',faint:'#6b7581',line:'#2a333e',accent:'#8ab8ff',soft:'#1e2c40',warn:'#e3b46b',warnsoft:'#2e2718',quote:'#1f2630'}},
+  sepia: {name:'Sepia low-glare', note:'Solarized-ish, olive accent, soft on the eyes',
+    light:{bg:'#faf4e3',panel:'#fffaec',ink:'#38382e',muted:'#69685c',faint:'#98978a',line:'#e7dfc6',accent:'#5c6e27',soft:'#ebeed9',warn:'#a05a2c',warnsoft:'#f6e8db',quote:'#f2ebd8'},
+    dark: {bg:'#1f1d16',panel:'#28251c',ink:'#e9e3cf',muted:'#aaa28c',faint:'#78715e',line:'#3b3729',accent:'#bccb6e',soft:'#33361f',warn:'#dc9d6c',warnsoft:'#33261a',quote:'#2e2a1f'}},
+  contrast: {name:'High contrast', note:'Pure white/black, one violet accent',
+    light:{bg:'#ffffff',panel:'#ffffff',ink:'#111111',muted:'#404040',faint:'#707070',line:'#cfcfcf',accent:'#5b21b6',soft:'#efe9fb',warn:'#92400e',warnsoft:'#fef3e2',quote:'#f3f3f3'},
+    dark: {bg:'#000000',panel:'#0c0c0c',ink:'#f5f5f5',muted:'#b8b8b8',faint:'#858585',line:'#363636',accent:'#c7abff',soft:'#261b3f',warn:'#f2b86c',warnsoft:'#2c2214',quote:'#161616'}},
+  mist: {name:'Mist & Plum', note:'Grey-lilac, softer than slate',
+    light:{bg:'#f5f4f8',panel:'#ffffff',ink:'#23212b',muted:'#615e6c',faint:'#8f8c9a',line:'#e2e0e8',accent:'#6d3a8e',soft:'#f0e8f6',warn:'#8f5320',warnsoft:'#faefe3',quote:'#efedf3'},
+    dark: {bg:'#121118',panel:'#1a1921',ink:'#ebe9f0',muted:'#a19eae',faint:'#6f6c7c',line:'#2e2c38',accent:'#c79cf0',soft:'#2b2138',warn:'#e0b06e',warnsoft:'#2e2418',quote:'#22212a'}},
+};
+const FONTS = {
+  system:  {name:'System sans', css:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', offline:true},
+  charter: {name:'Charter / Georgia serif (system)', css:'Charter,"Iowan Old Style",Georgia,"Times New Roman",serif', offline:true},
+  atkinson:{name:'Atkinson Hyperlegible (Google)', css:'"Atkinson Hyperlegible",-apple-system,sans-serif', offline:false},
+  inter:   {name:'Inter (Google)', css:'Inter,-apple-system,sans-serif', offline:false},
+  plex:    {name:'IBM Plex Sans (Google, current)', css:'"IBM Plex Sans",-apple-system,sans-serif', offline:false},
+  sourceserif:{name:'Source Serif 4 (Google)', css:'"Source Serif 4",Charter,Georgia,serif', offline:false},
+  literata:{name:'Literata (Google, e-reader serif)', css:'Literata,Charter,Georgia,serif', offline:false},
+};
+const $=s=>document.querySelector(s);
+const root=document.documentElement;
+const state={pal:'paper',font:'plex',size:'18|1.7',mode:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'};
+
+function lum(hex){const c=hex.replace('#','');const [r,g,b]=[0,2,4].map(i=>parseInt(c.substr(i,2),16)/255)
+  .map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*r+.7152*g+.0722*b}
+function ratio(a,b){const [x,y]=[lum(a),lum(b)];return ((Math.max(x,y)+.05)/(Math.min(x,y)+.05)).toFixed(1)}
+function cls(r){return r>=7?'ok':r>=4.5?'aa':'bad'}
+
+function tokensCss(p,indent='    '){
+  return Object.entries(p).map(([k,v])=>`--${k}:${v}`).join(';')}
+function apply(){
+  const p=PALETTES[state.pal][state.mode], f=FONTS[state.font], [fs,lh]=state.size.split('|');
+  for(const [k,v] of Object.entries(p)) root.style.setProperty('--'+k,v);
+  root.style.setProperty('--font',f.css); root.style.setProperty('--fs',fs+'px'); root.style.setProperty('--lh',lh);
+  root.style.colorScheme=state.mode;
+  const rs=[['ink/bg',p.ink,p.bg],['ink/panel',p.ink,p.panel],['muted/panel',p.muted,p.panel],['accent/panel',p.accent,p.panel]];
+  $('#cr').innerHTML=rs.map(([n,a,b])=>{const r=ratio(a,b);return `<span class="${cls(r)}"><b>${n}</b> ${r}:1</span>`}).join('');
+  document.querySelectorAll('.sw').forEach(s=>s.classList.toggle('on',s.dataset.id===state.pal));
+  const L=PALETTES[state.pal].light, D=PALETTES[state.pal].dark;
+  $('#csscopy').textContent =
+`:root{${tokensCss(L)};--s1:6px;--s2:8px;--s3:10px;--s4:12px;--s5:16px;--s6:24px;--s7:32px;--r:10px;--r2:14px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){${tokensCss(D)}}}
+body{margin:0;background:var(--bg);color:var(--ink);font:${fs}px/${lh} ${f.css}}`
++ (f.offline?'':`\n<!-- in <head>, before <style>: -->\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(f.css.split(',')[0].replace(/"/g,'')).replace(/%20/g,'+')}:wght@400;600;700&display=swap">`);
+  try{localStorage.setItem('themelab',JSON.stringify(state))}catch(e){}
+}
+function wire(){
+  $('#pal').innerHTML=Object.entries(PALETTES).map(([k,v])=>`<option value="${k}">${v.name}</option>`).join('');
+  $('#font').innerHTML=Object.entries(FONTS).map(([k,v])=>`<option value="${k}">${v.name}</option>`).join('');
+  $('#swatches').innerHTML=Object.entries(PALETTES).map(([k,v])=>{const p=v[state.mode];
+    return `<div class="sw" data-id="${k}"><b>${v.name}</b><small>${v.note}</small>
+      <div class="chips">${['bg','panel','ink','accent','soft','warn'].map(t=>`<i style="background:${p[t]}" title="${t}"></i>`).join('')}</div></div>`}).join('');
+  document.querySelectorAll('.sw').forEach(s=>s.onclick=()=>{state.pal=s.dataset.id;$('#pal').value=state.pal;apply()});
+  for(const k of ['pal','font','size','mode']){$('#'+k).value=state[k];$('#'+k).onchange=e=>{state[k]=e.target.value;if(k==='mode')wire();apply()}}
+  $('#copy').onclick=async()=>{await navigator.clipboard.writeText($('#csscopy').textContent);$('#copy').textContent='Copied';setTimeout(()=>$('#copy').textContent='Copy CSS for template',1200)};
+}
+try{Object.assign(state,JSON.parse(localStorage.getItem('themelab')||'{}'))}catch(e){}
+wire(); apply();
+const fixLab=()=>root.style.setProperty('--labh',$('#lab').offsetHeight+'px');
+fixLab(); addEventListener('resize',fixLab);
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+onboarding = false
+# herdr configuration
+# Place this file at ~/.config/herdr/config.toml
+
+# Play sounds when agents change state in background workspaces
+[ui.sound]
+enabled = false
+
+[ui]
+agent_panel_sort = "spaces"
+
+[theme]
+auto_switch = true
+dark_name = "catppuccin"
+light_name = "catppuccin-latte"
