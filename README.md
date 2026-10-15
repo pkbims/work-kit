@@ -1,6 +1,6 @@
 # Work kit
 
-My Claude Code setup for the work laptop: html-worker, Daily Tasks (Planner), Agent Monitor, the herdr skill and helpers, the status line, and my working style.
+My Claude Code setup for the work laptop: html-worker, Daily Tasks (Planner), Agent Monitor, Monitoring Center, the herdr skill and helpers, the status line, and my working style.
 
 Nothing personal is in here. No memory, no history, no side-project skills.
 
@@ -13,13 +13,13 @@ Nothing personal is in here. No memory, no history, no side-project skills.
        sh install.sh
 
 4. **Open herdr**, start Claude inside it, and say "plan my day" or "start the planner".
-   Or start both pages yourself: `sh ~/work-tools/start.sh`
+   Or start all three pages yourself: `sh ~/work-tools/start.sh`
 
 ## What goes where
 
 | What | Where it ends up |
 |---|---|
-| html-worker, daily-tasks, herdr skills | `~/.claude/skills/` (works in every folder) |
+| html-worker, daily-tasks, monitoring-center, herdr skills | `~/.claude/skills/` (works in every folder) |
 | server-pane.sh, start-agent.sh | `~/.claude/scripts/` |
 | Status line (also feeds the Agent Monitor) | `~/.claude/statusline.py` |
 | Allowed commands, status line setting | merged into `~/.claude/settings.json` (backed up first) |
@@ -32,6 +32,7 @@ Nothing personal is in here. No memory, no history, no side-project skills.
 ## Good to know
 
 - **Each laptop has its own data.** Tasks, chats and the monitor's history stay on the laptop where they were made. Nothing syncs.
+- **The Monitoring Center** (http://localhost:7700) lists every server running on the laptop, with Open, Restart and Stop. It knows the Planner, the Agent Monitor and html-worker pages under `~/work-tools`. Anything else running shows under Other.
 - **The Agent Monitor needs herdr and the status line.** It shows every Claude session running in herdr. Sessions outside herdr show up without a pane.
 - **"Make my task list" runs `claude -p`** (Sonnet by default, `TASKS_MODEL` changes it), so it uses your work Claude account.
 - **Updating later:** improve things on the personal Mac, make a new kit, run `install.sh` again. It backs up what it replaces to `~/.claude/backups/`. Don't copy work-laptop changes back to the personal Mac.

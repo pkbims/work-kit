@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monitoring Center</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{--bg:#f4eee2;--panel:#fdf9f1;--ink:#2a2521;--muted:#6a6157;--faint:#978d82;--line:#e3d9c7;
+    --accent:#b0523a;--soft:#f5e4dc;--ok:#3a9a5b;--oksoft:#e3f1e7;color-scheme:light}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#1b1916;--panel:#242019;
+    --ink:#ede4d6;--muted:#a89e8f;--faint:#766d60;--line:#38322a;--accent:#e28f72;--soft:#3b2a24;--ok:#5cc07f;--oksoft:#1f2e23}}
+  :root[data-theme="dark"]{color-scheme:dark;--bg:#1b1916;--panel:#242019;--ink:#ede4d6;--muted:#a89e8f;--faint:#766d60;
+    --line:#38322a;--accent:#e28f72;--soft:#3b2a24;--ok:#5cc07f;--oksoft:#1f2e23}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",-apple-system,sans-serif}
+  header{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);
+    padding:10px 24px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:15px;margin:0;font-weight:650}
+  .spacer{flex:1}
+  .stat{font-size:13px;color:var(--muted)} .stat b{color:var(--ok)}
+  input.q{font:inherit;font-size:13.5px;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:200px}
+  label.tg{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center;cursor:pointer}
+  .btn{font:inherit;font-size:13px;padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.go{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:650}
+  .btn:disabled{opacity:.5;cursor:wait}
+  main{max-width:1180px;margin:0 auto;padding:22px 16px 80px}
+  h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:22px 0 8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .srv{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+  .srv.up{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+  .top{display:flex;gap:9px;align-items:flex-start}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none;margin-top:6px}
+  .up .dot{background:var(--ok);box-shadow:0 0 0 3px var(--oksoft)}
+  .nm{font-weight:650;font-size:15px;line-height:1.3;flex:1}
+  .port{font-size:12.5px;font-weight:650;color:var(--ok);white-space:nowrap}
+  .what{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dir{font-size:12px;color:var(--faint);font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acts{display:flex;gap:8px;margin-top:2px;align-items:center}
+  .btn.stop{font-size:12px;padding:3px 10px;color:var(--muted)} .btn.stop:hover{color:#c0392b;border-color:#c0392b}
+  .btn.danger{background:#c0392b;border-color:#c0392b;color:#fff;font-weight:650}
+  .confirm{font-size:13px;flex:1}
+  a.open{font-size:13px;font-weight:650;color:var(--accent);text-decoration:none}
+  a.open:hover{text-decoration:underline}
+  .empty{color:var(--muted);text-align:center;padding:30px}
+  /* dragging */
+  .srv{cursor:grab;touch-action:none;user-select:none}
+  .srv a,.srv .what,.srv .dir{user-select:text}
+  .srv.drag{opacity:.35}
+  .ghostcard{position:fixed;z-index:50;pointer-events:none;margin:0;
+    box-shadow:0 12px 30px rgba(0,0,0,.28);transform:rotate(-1.5deg);opacity:.96}
+  .srv .grip{color:var(--faint);font-size:13px;cursor:grab;user-select:none;line-height:1}
+  .grid.over{outline:2px dashed var(--accent);outline-offset:4px;border-radius:12px}
+  body.dragging .srv{cursor:grabbing}
+  body.dragging .drop{display:grid}
+  .drop{display:none;place-items:center;min-height:74px;border:1.5px dashed var(--line);border-radius:12px;
+    color:var(--faint);font-size:13px}
+  .grid.over .drop{border-color:var(--accent);color:var(--accent)}
+
+  /* group headers */
+  .gh{display:flex;align-items:center;gap:8px;margin:22px 0 8px}
+  .gh h2{margin:0}
+  .gh .gact{opacity:0;transition:opacity .15s;display:flex;gap:6px}
+  .gh:hover .gact{opacity:1}
+  .gh button{font:inherit;font-size:11px;color:var(--faint);background:none;border:0;cursor:pointer;padding:2px 4px}
+  .gh button:hover{color:var(--accent)}
+  .gh input{font:inherit;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:650;
+    color:var(--ink);background:var(--panel);border:1px solid var(--accent);border-radius:6px;padding:2px 8px;width:220px}
+  .gcount{font-size:11px;color:var(--faint)}
+  /* A derived category with nothing running is never shown — not even mid-drag, since it
+     would only be an empty box named after stopped servers. The one exception is the home
+     of the card being dragged, so it can always be put back. */
+  .gh.ghost,.grid.ghost{display:none}
+  body.dragging .gh.ghost.home{display:flex}
+  body.dragging .grid.ghost.home{display:grid}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+    padding:9px 16px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none}
+  #toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛰️ Monitoring Center</h1>
+  <span class="stat" id="stat">…</span>
+  <div class="spacer"></div>
+  <input class="q" id="q" placeholder="Filter…" aria-label="Filter servers">
+  <label class="tg"><input type="checkbox" id="showstopped"> Show stopped</label>
+  <button class="btn" id="addcat" title="New category">+ Category</button>
+  <button class="btn" id="theme" title="Auto → Light → Dark">Auto</button>
+</header>
+<main id="main"><p class="empty">Scanning…</p></main>
+<div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S=null;
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000)};
+(()=>{const R=document.documentElement,L={'':'Auto',light:'Light',dark:'Dark'},b=$('#theme');
+  const set=v=>{v?R.dataset.theme=v:delete R.dataset.theme;try{v?localStorage.setItem('theme',v):localStorage.removeItem('theme')}catch(e){}b.textContent=L[v]};
+  let v='';try{v=localStorage.getItem('theme')||''}catch(e){} set(v);
+  b.onclick=()=>{const c=['','light','dark'];set(c[(c.indexOf(R.dataset.theme||'')+1)%3])}})();
+// Running-only is the default; stopped servers appear only when asked for (to Start one).
+try{$('#showstopped').checked=localStorage.getItem('showstopped')==='1'}catch(e){}
+let confirming=null; // index of the card whose Stop is awaiting confirmation
+
+// The server orders and names the categories (it owns layout.json); the page just draws them.
+let dragKey=null, renaming=null;
+const label=id=>(S.groups.find(g=>g.id===id)||{}).label||id;
+
+async function layout(body){
+  const res=await fetch('/api/layout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j=await res.json(); if(!res.ok) throw new Error(j.error); return j.msg;
+}
+
+// Dragging is done with pointer events rather than HTML5 drag-and-drop: it behaves the
+// same in every browser, works with a trackpad or a finger, and nothing can silently
+// refuse to start a drag.
+let drag=null;   // {key, card, ghost, grid} while a card is in the air
+
+function wireDrag(el){
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || e.target.closest('a,button,input,label')) return;  // let the controls work
+    const x0 = e.clientX, y0 = e.clientY, key = el.dataset.key;
+    let live = false;
+    const move = ev => {
+      if (!live) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 5) return;        // a click, not a drag
+        live = true; begin(el, key, ev);
+      }
+      over(ev);
+      ev.preventDefault();
+    };
+    const up = ev => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', up);
+      if (live) finish(ev.type === 'pointercancel' ? null : ev);
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', up);
+  });
+}
+function begin(card, key, ev) {
+  const r = card.getBoundingClientRect();
+  const ghost = card.cloneNode(true);
+  ghost.className = 'srv ghostcard';
+  Object.assign(ghost.style, {width: r.width + 'px', left: r.left + 'px', top: r.top + 'px'});
+  ghost.dataset.dx = ev.clientX - r.left; ghost.dataset.dy = ev.clientY - r.top;
+  document.body.appendChild(ghost);
+  card.classList.add('drag');
+  document.body.classList.add('dragging');
+  // reveal only this card's home category, in case it's empty and the user wants it back
+  const home = S.rows.find(x => x.key === key)?.home;
+  const back = home && document.querySelector(`.grid[data-group="${CSS.escape(home)}"]`);
+  if (back) { back.classList.add('home'); back.previousElementSibling?.classList.add('home'); }
+  dragKey = key;
+  drag = {key, card, ghost, grid: null, back};
+}
+function over(ev) {
+  if (!drag) return;
+  const g = drag.ghost;
+  g.style.left = (ev.clientX - +g.dataset.dx) + 'px';
+  g.style.top  = (ev.clientY - +g.dataset.dy) + 'px';
+  // the ghost has pointer-events:none, so this finds what is underneath it
+  const grid = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.grid[data-group]') || null;
+  if (grid !== drag.grid) {
+    drag.grid?.classList.remove('over');
+    grid?.classList.add('over');
+    drag.grid = grid;
+  }
+  const m = 60, vh = innerHeight;   // nudge the page when dragging near an edge
+  if (ev.clientY < m) scrollBy(0, -12); else if (ev.clientY > vh - m) scrollBy(0, 12);
+}
+async function finish(ev) {
+  const {key, card, ghost, grid, back} = drag;
+  ghost.remove(); card.classList.remove('drag');
+  document.body.classList.remove('dragging');
+  grid?.classList.remove('over');
+  if (back) { back.classList.remove('home'); back.previousElementSibling?.classList.remove('home'); }
+  drag = null; dragKey = null;
+  const to = ev && grid && grid.dataset.group;
+  const r = S.rows.find(x => x.key === key);
+  if (!to || !r || r.group === to) return render();
+  r.group = to; render();                                   // move it now, confirm after
+  try { toast(`${r.name}: ${await layout({act: 'place', key, group: to, home: r.home})}`); }
+  catch (err) { toast(err.message); }
+  load();
+}
+
+function render(){
+  if(!S) return;
+  const q=$('#q').value.trim().toLowerCase(), only=!$('#showstopped').checked;
+  const rows=S.rows.filter(r=>(!only||r.up)&&(!q||[r.name,r.what,r.cwd,label(r.group),r.port].join(' ').toLowerCase().includes(q)));
+  const up=S.rows.filter(r=>r.up).length;
+  $('#stat').innerHTML=`<b>${up} running</b> · ${S.rows.length-up} stopped`;
+  // Every category is always in the DOM, even when empty: the empty ones are merely hidden
+  // until a drag starts. Rendering them on dragstart instead would rebuild the card being
+  // dragged and cancel the drag.
+  const groups=S.groups;
+  const anyShown=groups.some(g=>rows.some(r=>r.group===g.id));
+  $('#main').innerHTML=anyShown?groups.map(g=>{
+    const mine=rows.filter(r=>r.group===g.id).sort((a,b)=>(b.up-a.up)||a.name.localeCompare(b.name));
+    const ghost=!mine.length&&!g.custom?' ghost':'';
+    return `<div class="gh${ghost}">${renaming===g.id
+        ? `<input id="rn" value="${esc(g.label)}" aria-label="Category name">`
+        : `<h2>${esc(g.label)}</h2><span class="gcount">${mine.length||''}</span>
+           <span class="gact"><button data-rename="${esc(g.id)}">rename</button>${
+             g.custom?`<button data-delcat="${esc(g.id)}">delete</button>`:''}</span>`}</div>
+      <div class="grid${ghost}" data-group="${esc(g.id)}">${mine.map(card).join('')}
+        <div class="drop">drop here</div></div>`}).join('')
+    :'<p class="empty">Nothing matches.</p>';
+  document.querySelectorAll('[data-start]').forEach(b=>b.onclick=async()=>{
+    const r=S.rows[+b.dataset.start]; b.disabled=true; b.textContent='Starting…';
+    try{const res=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cwd:r.cwd,cmd:r.cmd})});
+      const j=await res.json(); if(!res.ok) throw new Error(j.error); toast(`${r.name}: ${j.msg}`); setTimeout(load,2500)}
+    catch(e){toast(e.message);b.disabled=false;b.textContent='Start'}});
+  document.querySelectorAll('[data-stop]').forEach(b=>b.onclick=()=>{confirming=+b.dataset.stop;render()});
+  document.querySelectorAll('[data-restart]').forEach(b=>b.onclick=async()=>{
+    const r=S.rows[+b.dataset.restart]; b.disabled=true; b.textContent='Restarting…';
+    try{const res=await fetch('/api/restart',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pid:r.pid,port:r.port,cwd:r.cwd,cmd:r.cmd})});
+      const j=await res.json(); if(!res.ok) throw new Error(j.error); toast(`${r.name}: ${j.msg}`); setTimeout(load,2500)}
+    catch(e){toast(e.message);b.disabled=false;b.textContent='↻ Restart'}});
+  document.querySelectorAll('.srv').forEach(wireDrag);
+  // --- rename / delete a category ---
+  document.querySelectorAll('[data-rename]').forEach(b=>b.onclick=()=>{renaming=b.dataset.rename;render();
+    const i=$('#rn'); if(i){i.focus();i.select()}});
+  document.querySelectorAll('[data-delcat]').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.delcat;
+    if(!confirm(`Delete the category “${label(id)}”? Its cards go back where the scan puts them.`)) return;
+    try{toast(await layout({act:'delete',group:id}))}catch(e){toast(e.message)}
+    load();
+  });
+  const rn=$('#rn');
+  if(rn){
+    const commit=async save=>{
+      const id=renaming, val=rn.value; renaming=null;
+      if(!save||!val.trim()||val===label(id)) return render();
+      try{toast(await layout({act:'rename',group:id,label:val}))}catch(e){toast(e.message)}
+      load();
+    };
+    rn.onkeydown=e=>{if(e.key==='Enter')commit(true); if(e.key==='Escape')commit(false)};
+    rn.onblur=()=>commit(true);
+  }
+  document.querySelectorAll('[data-no]').forEach(b=>b.onclick=()=>{confirming=null;render()});
+  document.querySelectorAll('[data-yes]').forEach(b=>b.onclick=async()=>{
+    const r=S.rows[+b.dataset.yes]; b.disabled=true; b.textContent='Stopping…';
+    try{const res=await fetch('/api/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pid:r.pid,port:r.port})});
+      const j=await res.json(); if(!res.ok) throw new Error(j.error); toast(`${r.name}: ${j.msg}`)}
+    catch(e){toast(e.message)}
+    confirming=null; load()});
+}
+function card(r){
+  const i=S.rows.indexOf(r), url=r.port?`http://${location.hostname}:${r.port}/`:'';  // same host the hub was opened on (a phone uses the Mac's IP)
+  return `<div class="srv ${r.up?'up':''}" data-key="${esc(r.key)}">
+    <div class="top"><span class="dot"></span><span class="nm">${esc(r.name)}</span>${r.up?`<span class="port">:${r.port}</span>`:''}<span class="grip" title="Drag into a category">⠿</span></div>
+    <div class="what" title="${esc(r.what)}">${esc(r.what)}${r.up&&r.title&&r.title!==r.name?` · “${esc(r.title)}”`:''}</div>
+    <div class="dir" title="${esc(r.where||r.cwd)}">${esc(r.where||r.cwd)}${r.up&&r.pane_tab?` · ${esc(r.pane_tab)} tab`:''}</div>
+    <div class="acts">${!r.up?(r.other?'':`<button class="btn go" data-start="${i}">Start</button>`)
+      :confirming===i?`<span class="confirm">Stop ${esc(r.name)}${r.pane_tab==='servers-tab'?' and close its pane':''}?</span><button class="btn danger" data-yes="${i}">Stop</button><button class="btn" data-no="${i}">Cancel</button>`
+      :`${r.title!==null?`<a class="open" href="${url}" target="_blank">Open ↗</a>`:'<span class="what">not a web page</span>'}
+        <span class="spacer"></span>${r.other?'':`<button class="btn stop" data-restart="${i}" title="Stop and start again, to pick up code changes">↻ Restart</button>`}<button class="btn stop" data-stop="${i}">■ Stop</button>`}</div></div>`}
+
+async function load(){try{S=await (await fetch('/api/state')).json();render()}catch(e){$('#stat').textContent='scan failed'}}
+$('#q').oninput=render;
+$('#showstopped').onchange=()=>{try{localStorage.setItem('showstopped',$('#showstopped').checked?'1':'0')}catch(e){}render()};
+$('#addcat').onclick=async()=>{
+  const name=prompt('Name the new category'); if(!name||!name.trim()) return;
+  try{await layout({act:'add',label:name.trim()}); toast(`Added ${name.trim()}`)}catch(e){toast(e.message)}
+  load();
+};
+// A rescan re-renders, which would drop a drag or a half-typed name; hold off while arranging.
+load(); setInterval(()=>{if(document.visibilityState==='visible'&&confirming===null&&!dragKey&&renaming===null)load()},10000);
+</script>
+</body>
+</html>

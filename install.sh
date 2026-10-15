@@ -14,8 +14,12 @@ command -v herdr   >/dev/null || echo "note: herdr isn't installed yet (see READ
 
 say "1. Skills → $C/skills"
 mkdir -p "$C/skills" "$C/scripts"
-for s in html-worker daily-tasks herdr; do
-  backup "$C/skills/$s"; rm -rf "$C/skills/$s"; cp -R "$KIT/claude/skills/$s" "$C/skills/"
+for s in html-worker daily-tasks monitoring-center herdr; do
+  backup "$C/skills/$s"
+  # keep the Monitoring Center layout you arranged by dragging
+  keep=""; [ -e "$C/skills/$s/layout.json" ] && { keep=$(mktemp); cp "$C/skills/$s/layout.json" "$keep"; }
+  rm -rf "$C/skills/$s"; cp -R "$KIT/claude/skills/$s" "$C/skills/"
+  [ -n "$keep" ] && mv "$keep" "$C/skills/$s/layout.json"
 done
 
 say "2. Helper scripts and status line"
@@ -66,5 +70,5 @@ else
 fi
 
 say "Done."
-echo "Start the Planner and Agent Monitor:  sh ~/work-tools/start.sh"
+echo "Start the Planner, Agent Monitor and Monitoring Center:  sh ~/work-tools/start.sh"
 echo "Restart any open Claude sessions so they pick up the new skills."
