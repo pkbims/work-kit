@@ -504,6 +504,13 @@ function renderProgress(){const box=$('#cprog');if(!box||!PLOADED)return;progIni
   if(fresh.length){box.className='cprog recent';
     box.innerHTML=`<div class="l">✓ Answered recently — check the answers below</div><div class="sub">${fresh.length} new answer${fresh.length>1?'s':''} · marked with a dot</div>`;return}
   box.className='cprog idle';box.innerHTML=S.comments.length?'<div class="l">✓ All caught up</div>':''}
+// "Goes to" options, under one heading per herdr workspace when the server sends groups
+// (user, 2026-10-16: "group them in herdr workspaces so easier for me to select"); flat otherwise.
+function gotoOptions(ss,cur){
+  const opt=x=>`<option value="${esc(x.id)}"${x.id===cur?' selected':''}>${esc(x.name)}${x.status&&x.status!=='not running'?' — '+esc(x.status):''}</option>`;
+  if(!ss.some(x=>x.group))return ss.map(opt).join('');
+  const groups=[];ss.forEach(x=>{let g=groups.find(g=>g.name===(x.group||''));if(!g)groups.push(g={name:x.group||'',items:[]});g.items.push(x)});
+  return groups.map(g=>`<optgroup label="${esc(g.name)}">${g.items.map(opt).join('')}</optgroup>`).join('')}
 function renderQueue(){
   const q=S.comments.filter(c=>c.status==='queued');
   const nd=Object.keys(S.decisions).length;
@@ -520,7 +527,7 @@ function renderQueue(){
   // "Goes to" (user, 2026-10-08): with several Claude sessions, pick which one owns this page; Send and questions go there
   const st=$('#sendto'); if(!(st.querySelector('select')&&document.activeElement===st.querySelector('select')))
   st.innerHTML=(AGENT.sessions&&AGENT.sessions.length>1)
-    ?`Goes to <select id="goto">${AGENT.sessions.map(x=>`<option value="${esc(x.id)}"${x.id===AGENT.session?' selected':''}>${esc(x.name)}</option>`).join('')}</select>${AGENT.status?` · ${esc(AGENT.status)}`:''}`
+    ?`Goes to <select id="goto">${gotoOptions(AGENT.sessions,AGENT.session)}</select>`
     :(AGENT.agent?`→ <b>${esc(AGENT.agent)}</b>${AGENT.status?` · ${esc(AGENT.status)}`:''}`:'→ the Claude session in the terminal');
   const gs=st.querySelector('#goto'); if(gs)gs.onchange=async()=>{await post('/api/owner',{session:gs.value});
     try{AGENT=await fetch('/api/agent',{cache:'no-store'}).then(r=>r.json())}catch(e){} renderQueue(); toast('This page now goes to '+gs.selectedOptions[0].text)};

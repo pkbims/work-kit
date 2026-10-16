@@ -146,7 +146,8 @@ server can't wake anyone**, so write it every time. The Chat center then shows w
 
 **"Goes to" picker** (user, 2026-10-16: "select the agents like I do in the build center"). When more
 than one Claude is running in herdr, the line under Send becomes a dropdown of every Claude in every
-herdr session (named by session name, e.g. `helper-1 · 30DayChallenge`). Picking one writes
+herdr session, grouped under one heading per herdr workspace (`30DayChallenge › Strategy Shelf`; the session name
+is left off when only one herdr session runs), each with its status (`orch-shelf — idle`). Picking one writes
 `session/pane` to `.agent`, and Send and questions go there from then on. Whoever is picked owns the
 page's rounds. A bare pane in `.agent` (what setup writes) means the server's own herdr session. A picked
 session that has stopped stays shown as "not running" rather than switching by itself. Older page

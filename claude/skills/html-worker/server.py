@@ -65,17 +65,23 @@ def claude_sessions():
         names = [l.split()[0] for l in lines if len(l.split()) > 1 and l.split()[1] == "running"]
     except (OSError, subprocess.TimeoutExpired):
         names = []
-    for sess in names:
+    for si, sess in enumerate(names):
         try:
             r = json.loads(subprocess.run(["herdr", "--session", sess, "agent", "list"], capture_output=True,
                                           text=True, timeout=5).stdout)
+            ws = json.loads(subprocess.run(["herdr", "--session", sess, "workspace", "list"], capture_output=True,
+                                           text=True, timeout=5).stdout).get("result", {}).get("workspaces", [])
         except (ValueError, OSError, subprocess.TimeoutExpired):
             continue
+        # grouped by herdr workspace in the picker (user, 2026-10-16: "group them in herdr workspaces")
+        wlabel = {w["workspace_id"]: (w.get("number", 99), w.get("label") or w["workspace_id"]) for w in ws}
         for a in r.get("result", {}).get("agents", []):
             if a.get("agent") == "claude":
                 label = a.get("name") or a.get("terminal_title_stripped") or os.path.basename(a.get("cwd", "")) or a["pane_id"]
-                out.append({"id": f"{sess}/{a['pane_id']}", "name": f"{label} · {sess}" if len(names) > 1 else label,
-                            "status": a.get("agent_status")})
+                num, wname = wlabel.get(a.get("workspace_id"), (99, a.get("workspace_id") or "?"))
+                out.append({"id": f"{sess}/{a['pane_id']}", "name": label, "status": a.get("agent_status"),
+                            "group": f"{sess} › {wname}" if len(names) > 1 else wname, "_order": (si, num, label.lower())})
+    out.sort(key=lambda x: x.pop("_order"))
     _SESSIONS.update(t=time.time(), list=out)
     return out
 
@@ -89,7 +95,7 @@ def agent_view():
     sid = "/".join(a)
     cur = next((x for x in sessions if x["id"] == sid), None)
     if not cur:  # the chosen session isn't running: still show it, so the picker doesn't silently jump
-        sessions = [{"id": sid, "name": f"{a[1]} · {a[0]} (not running)", "status": "not running"}] + sessions
+        sessions = [{"id": sid, "name": f"{a[1]} · {a[0]}", "status": "not running", "group": "Not running"}] + sessions
     return {"agent": cur["name"] if cur else sid, "status": cur["status"] if cur else "not running",
             "session": sid, "sessions": sessions}
 
