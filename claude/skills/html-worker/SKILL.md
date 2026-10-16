@@ -144,6 +144,14 @@ The pane comes from `<dir>/.agent`, written at setup from `$HERDR_PANE_ID`. **Wi
 server can't wake anyone**, so write it every time. The Chat center then shows who Send goes to
 (`→ claude · working`).
 
+**"Goes to" picker** (user, 2026-10-16: "select the agents like I do in the build center"). When more
+than one Claude is running in herdr, the line under Send becomes a dropdown of every Claude in every
+herdr session (named by session name, e.g. `helper-1 · 30DayChallenge`). Picking one writes
+`session/pane` to `.agent`, and Send and questions go there from then on. Whoever is picked owns the
+page's rounds. A bare pane in `.agent` (what setup writes) means the server's own herdr session. A picked
+session that has stopped stays shown as "not running" rather than switching by itself. Older page
+folders get the picker after `sync.py` and a server restart.
+
 Outside herdr (no `$HERDR_PANE_ID`) there is no `.agent`, and a background watcher is the only way
 back. Start it in the same turn the server comes up. It blocks on the file and exits when it
 changes, which re-invokes you:

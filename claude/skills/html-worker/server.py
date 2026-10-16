@@ -4,6 +4,7 @@ and queued comments to disk so Claude can read them back."""
 
 import json
 import os
+import re
 import shutil
 import http.server
 import socket
@@ -28,14 +29,82 @@ PENDING = {"t": None}             # time of the last question/reply not yet pass
 BUNDLE_S = 8                      # messages within this many seconds become one wake-up
 
 
+def own_session():
+    """The herdr session this server runs in (from the socket herdr gives its panes), else "default"."""
+    sock = os.environ.get("HERDR_SOCKET_PATH", "")
+    return os.path.basename(os.path.dirname(sock)) if "/sessions/" in sock else "default"
+
+
 def agent():
-    """The herdr pane of the Claude session working on this page, from <page>/.agent
-    (written at setup: echo $HERDR_PANE_ID > .agent). None → INBOX.md is the only way back."""
+    """The Claude session working on this page, from <page>/.agent, as (herdr session, pane).
+    Setup writes a bare pane (echo $HERDR_PANE_ID > .agent), which means this server's own herdr
+    session; the "Goes to" picker writes "session/pane". None → INBOX.md is the only way back."""
     try:
         with open(os.path.join(HERE, ".agent")) as f:
-            return f.read().strip() or None
+            a = f.read().strip()
     except OSError:
         return None
+    if not a:
+        return None
+    return tuple(a.split("/", 1)) if "/" in a else (own_session(), a)
+
+
+# "Goes to" (user, 2026-10-16: "select the agents like I do in the build center"): every Claude running
+# in any herdr session, so a page can be handed to another session. Pane ids like w1:p1 repeat across
+# herdr sessions, so a pick is always "session/pane". The page asks every few seconds; herdr is asked
+# at most every 10 s.
+_SESSIONS = {"t": 0, "list": []}
+
+
+def claude_sessions():
+    if time.time() - _SESSIONS["t"] < 10:
+        return _SESSIONS["list"]
+    out = []
+    try:
+        lines = subprocess.run(["herdr", "session", "list"], capture_output=True, text=True, timeout=5).stdout.splitlines()[1:]
+        names = [l.split()[0] for l in lines if len(l.split()) > 1 and l.split()[1] == "running"]
+    except (OSError, subprocess.TimeoutExpired):
+        names = []
+    for sess in names:
+        try:
+            r = json.loads(subprocess.run(["herdr", "--session", sess, "agent", "list"], capture_output=True,
+                                          text=True, timeout=5).stdout)
+        except (ValueError, OSError, subprocess.TimeoutExpired):
+            continue
+        for a in r.get("result", {}).get("agents", []):
+            if a.get("agent") == "claude":
+                label = a.get("name") or a.get("terminal_title_stripped") or os.path.basename(a.get("cwd", "")) or a["pane_id"]
+                out.append({"id": f"{sess}/{a['pane_id']}", "name": f"{label} · {sess}" if len(names) > 1 else label,
+                            "status": a.get("agent_status")})
+    _SESSIONS.update(t=time.time(), list=out)
+    return out
+
+
+def agent_view():
+    """What the Chat center shows: who Send goes to, its status, and the sessions it could go to instead."""
+    a = agent()
+    sessions = claude_sessions()
+    if not a:
+        return {"agent": None, "status": None, "session": None, "sessions": sessions}
+    sid = "/".join(a)
+    cur = next((x for x in sessions if x["id"] == sid), None)
+    if not cur:  # the chosen session isn't running: still show it, so the picker doesn't silently jump
+        sessions = [{"id": sid, "name": f"{a[1]} · {a[0]} (not running)", "status": "not running"}] + sessions
+    return {"agent": cur["name"] if cur else sid, "status": cur["status"] if cur else "not running",
+            "session": sid, "sessions": sessions}
+
+
+def set_owner(sid):
+    """The user picked another session in "Goes to". Send and questions go there from now on."""
+    if not re.fullmatch(r"[\w.-]{1,60}/[\w:.-]{1,40}", sid or ""):
+        return {"error": "bad session id"}
+    if sid not in {x["id"] for x in claude_sessions()}:
+        _SESSIONS["t"] = 0  # maybe it just started: look again before refusing
+        if sid not in {x["id"] for x in claude_sessions()}:
+            return {"error": "that Claude session isn't running"}
+    with open(os.path.join(HERE, ".agent"), "w") as f:
+        f.write(sid + "\n")
+    return {"ok": True, "session": sid}
 
 
 def wake(text):
@@ -46,7 +115,7 @@ def wake(text):
     if not a:
         return False
     try:
-        return subprocess.run(["herdr", "agent", "prompt", a, text], capture_output=True,
+        return subprocess.run(["herdr", "--session", a[0], "agent", "prompt", a[1], text], capture_output=True,
                               text=True, timeout=20).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -312,16 +381,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/api/state":
             return self._json(load())
-        if self.path == "/api/agent":      # the session in <page>/.agent, woken on Send
-            a = agent()
-            if not a:
-                return self._json({"agent": None, "status": None})
-            try:
-                r = json.loads(subprocess.run(["herdr", "agent", "get", a], capture_output=True,
-                                              text=True, timeout=5).stdout)["result"]["agent"]
-                return self._json({"agent": r.get("agent", a), "status": r.get("agent_status")})
-            except (ValueError, KeyError, OSError, subprocess.TimeoutExpired):
-                return self._json({"agent": a, "status": "not running"})
+        if self.path == "/api/agent":      # who Send wakes (<page>/.agent), and who it could go to instead
+            return self._json(agent_view())
         if self.path == "/":
             self.path = "/index.html"
         return super().do_GET()
@@ -332,6 +393,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length) or b"{}")
         except json.JSONDecodeError:
             return self._json({"error": "bad json"}, 400)
+        if self.path == "/api/owner":      # "Goes to" picked another Claude session
+            obj = set_owner(str(payload.get("session", "")))
+            return self._json(obj, 400 if obj.get("error") else 200)
         if self.path == "/api/discard":
             threading.Thread(target=discard, daemon=True).start()
             return self._json({"ok": True})
