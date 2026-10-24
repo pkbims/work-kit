@@ -285,6 +285,23 @@
   .fx-acts{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center}
   .fx-acts .btn{padding:9px 18px;font-size:14px}
   .fx-nav{display:flex;gap:6px;margin-left:auto}
+  /* Focus editing, steps and hyper focus (user, 2026-10-23) */
+  .fx-title [data-fe],.fx-why[data-fe],.fx-steps [data-fe]{cursor:text}
+  .fx-why .ph{opacity:.7}
+  .fx-steps li{display:flex;align-items:center;gap:8px}
+  .fx-steps li>span[data-fe]{flex:1;min-width:0}
+  .fx-steps .x{opacity:.45} .fx-steps li:hover .x{opacity:1}
+  .fx-grip{cursor:grab;color:var(--muted);opacity:.45;user-select:none;font-size:14px;flex:none}
+  .fx-steps li:hover .fx-grip{opacity:1} .fx-steps li.dragging{opacity:.45}
+  .fx-steps .spent{font-style:normal;color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .fx-add{display:flex;gap:6px;width:100%;max-width:440px}
+  .fx-add .inl{flex:1}
+  .fx-tbox{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:10px}
+  .fx-lab{color:var(--muted);font-size:12.5px;margin-right:2px}
+  .fx-tbox .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .fx-tbox .inl{width:96px;padding:2px 8px;font-size:12.5px}
+  .fx-foot{margin-top:22px}
+  .btn.armed{color:var(--over);border-color:var(--over);font-weight:650}
   @media (prefers-reduced-motion:reduce){.fx-ring .val,.t{transition:none}}
 
   /* Readability: bigger text everywhere. */
@@ -422,6 +439,15 @@ function setStage(t,st){resume(t);t.stage=st;
   if(st==='planned'){delete t.started_at;delete t.done_at}
   if(st==='started'){t.started_at??=new Date().toISOString();delete t.done_at}
   if(st==='completed'){t.done_at=new Date().toISOString()}}
+// Timers never start by themselves (user, 2026-10-23: "A timer must only run when I press a start button").
+// Dragging a card into Started lands it PAUSED: at now from Planned, at its done_at from Completed. Resume starts it.
+// The Start buttons call setStage directly, because that is the user starting the timer.
+function sendTo(t,st){const from=stageOf(t),was=t.done_at;setStage(t,st);
+  if(st==='started'&&from!=='started'&&t.started_at)t.paused_at=from==='completed'&&was?was:new Date().toISOString()}
+// Unticking a step of a finished task, or adding one, puts it back in Started PAUSED at its old done_at, so the
+// clock stays frozen until Resume. A task that never started goes back to Planned.
+function reopen(t){if(!t.started_at){t.stage='planned';delete t.done_at;delete t.paused_at;return}
+  const was=t.done_at;t.stage='started';delete t.done_at;t.paused_at=was||t.paused_at||new Date().toISOString()}
 // Started: counts down the time limit and turns red past it. Completed: how long it took.
 function timer(t){const st=stageOf(t);
   if(st==='started'&&t.started_at){const used=(nowOf(t)-Date.parse(t.started_at))/60000,left=(t.minutes||0)-used,p=t.paused_at?'paused · ':'';
@@ -476,7 +502,7 @@ function render(){
 // val pre-fills the box when editing; empty=true lets a field be cleared (the "why" line).
 function inline(host,ph,done,val='',empty=false){const i=document.createElement('input');i.className='inl';i.placeholder=ph;i.value=val;host.replaceWith(i);i.focus();
   let fired=false;const fin=()=>{if(fired)return;fired=true;const v=i.value.trim();(v||empty)&&v!==val?done(v):render()};
-  i.onkeydown=e=>{if(e.key==='Enter')fin();if(e.key==='Escape'){fired=true;render()}};i.onblur=fin}
+  i.onkeydown=e=>{if(e.key==='Enter')fin();if(e.key==='Escape'){e.stopPropagation();fired=true;render()}};i.onblur=fin}
 
 // Move a card to another day. The shortcuts cover what's actually used (next/previous day,
 // back to today); the date box handles anything else, including a day with no file yet.
@@ -534,7 +560,7 @@ function wire(){
   document.querySelectorAll('#grid input[type=checkbox]').forEach(c=>c.onchange=()=>{const t=tasks()[c.dataset.t];t.steps[c.dataset.s].done=c.checked;
     const full=t.steps.every(x=>x.done);
     if(full&&stageOf(t)!=='completed'){setStage(t,'completed');toast(`“${t.title}” is done`)}
-    else if(!full&&stageOf(t)==='completed')setStage(t,t.started_at?'started':'planned');
+    else if(!full&&stageOf(t)==='completed')reopen(t);
     persist()});
   document.querySelectorAll('[data-hide]').forEach(b=>b.onclick=e=>{e.stopPropagation();toggleCol(b.dataset.hide)});
   document.querySelectorAll('.col.collapsed').forEach(c=>c.onclick=()=>toggleCol(c.dataset.stage));
@@ -543,7 +569,8 @@ function wire(){
   document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{setStage(tasks()[b.dataset.i],b.dataset.go);persist()});
   document.querySelectorAll('[data-ds]').forEach(b=>b.onclick=()=>{tasks()[b.dataset.t].steps.splice(+b.dataset.ds,1);persist()});
   document.querySelectorAll('[data-dt]').forEach(b=>b.onclick=()=>{tasks().splice(+b.dataset.dt,1);persist()});
-  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>inline(b,'New step, then Enter',v=>{tasks()[b.dataset.add].steps.push({text:v,done:false});persist()}));
+  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>inline(b,'New step, then Enter',v=>{const t=tasks()[b.dataset.add];
+    if(stageOf(t)==='completed')reopen(t);t.steps.push({text:v,done:false});persist()}));
   $('#newtask').onclick=e=>adder(e.currentTarget);
   document.querySelectorAll('[data-g]').forEach(c=>c.onchange=()=>{goals()[c.dataset.g].done=c.checked;saveGoals()});
   document.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{goals().splice(+b.dataset.dg,1);saveGoals()});
@@ -558,7 +585,7 @@ function wire(){
   $('#addgoal').onclick=e=>inline(e.currentTarget,'Type a goal, then Enter',v=>{goals().push({text:v,done:false});saveGoals()});
   document.querySelectorAll('[data-mv]').forEach(b=>b.onclick=e=>{e.stopPropagation();moveBox(b,+b.dataset.mv)});
   // Only the grip starts a drag, so ticking and selecting text still work normally.
-  document.querySelectorAll('.grip').forEach(g=>{const el=g.closest('[data-drag]');
+  document.querySelectorAll('#grid .grip').forEach(g=>{const el=g.closest('[data-drag]');
     g.onmousedown=()=>el.draggable=true; g.onmouseup=()=>el.draggable=false});
 }
 
@@ -585,7 +612,7 @@ grid.addEventListener('dragend',()=>{if(!drag)return;const moved=drag;drag.dragg
   const ti=el=>el.dataset.i, si=el=>el.dataset.t+'/'+el.dataset.s;
   S.list.tasks=[...grid.querySelectorAll('.col')].flatMap(col=>[...col.querySelectorAll('.t[data-drag]')].filter(c=>!same(c,ti)).map(c=>{
     const t={...old[c.dataset.i],steps:[...c.querySelectorAll('li[data-drag]')].filter(l=>!same(l,si)).map(l=>old[l.dataset.t].steps[l.dataset.s])};
-    if(stageOf(t)!==col.dataset.stage)setStage(t,col.dataset.stage);
+    if(stageOf(t)!==col.dataset.stage)sendTo(t,col.dataset.stage);
     return t}));
   persist()});
 
@@ -619,7 +646,7 @@ function drawChat(){const th=$('#thread'); const atEnd=th.scrollHeight-th.scroll
   if(atEnd)th.scrollTop=th.scrollHeight}
 async function pollChat(){if(!cur)return; try{const r=await api('/api/chat?date='+cur);
   if(JSON.stringify(r.chat)!==JSON.stringify(CHAT)){CHAT=r.chat;drawChat()}
-  if(VER&&r.version!==VER&&!drag&&!document.querySelector('.movebox')&&!document.activeElement.closest('main')){S=await api('/api/state?date='+cur);render()}
+  if(VER&&r.version!==VER&&!drag&&!document.querySelector('.movebox')&&!FDRAG&&!document.activeElement.closest('main')&&!document.activeElement.closest('#focus')){S=await api('/api/state?date='+cur);render()}
   VER=r.version}catch(e){}}
 async function pollAgents(){try{AG=await api('/api/agents')}catch(e){return}
   const sel=$('#agentsel'); if(document.activeElement!==sel){
@@ -649,15 +676,18 @@ load();
 
 // ---- Focus mode (user, 2026-10-13: "easy to focus"): the task you're on, full screen. ----
 // Opens on the most recently started task, else the first planned one. ‹ › walk the unfinished tasks.
-let FX=null;
+// Opening it never writes a time: only Start, Resume and Done do.
+let FX=null, HX=null, FDRAG=null;     // HX: the step in hyper focus, null otherwise
 const open_=()=>tasks().map((t,i)=>i).filter(i=>stageOf(tasks()[i])!=='completed');
 function focusPick(){const ts=tasks(), st=ts.map((t,i)=>i).filter(i=>stageOf(ts[i])==='started')
     .sort((a,b)=>Date.parse(ts[b].started_at||0)-Date.parse(ts[a].started_at||0));
   return st.length?st[0]:ts.findIndex(t=>stageOf(t)==='planned')}
-function openFocus(i){if(!S)return;FX=i??focusPick();
-  if(FX==null||FX<0||!tasks()[FX])return toast('Nothing to focus on yet. Add a task first');
-  $('#focus').hidden=false;drawFocus()}
-function closeFocus(){$('#focus').hidden=true;FX=null}
+// Leaving a step (another task, closing focus) pauses its clock. Returns true when something changed.
+function dropHyper(){const x=HX!=null&&FX!=null&&tasks()[FX]?.steps[HX];HX=null;if(x&&x.run_since){stepPause(x);return true}return false}
+function openFocus(i){if(!S)return;const was=dropHyper();FX=i??focusPick();
+  if(FX==null||FX<0||!tasks()[FX]){FX=null;was&&persist();return toast('Nothing to focus on yet. Add a task first')}
+  $('#focus').hidden=false;was?persist():drawFocus()}
+function closeFocus(){const was=dropHyper();$('#focus').hidden=true;FX=null;if(was)persist()}
 const clock=sec=>{sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),x=sec%60;
   return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')};
 function focusClock(t){const st=stageOf(t);
@@ -668,34 +698,118 @@ function focusClock(t){const st=stageOf(t);
                   :{big:'+'+clock(-left),small:`${p}over ${fmtMin(t.minutes)}`,pct:1,over:true}}
   if(st==='completed')return{big:'✓',small:timer(t)?.txt||'done',pct:1,over:false};
   return{big:t.minutes?clock(t.minutes*60):'—',small:t.minutes?'ready when you are':'no time limit set',pct:0,over:false}}
+const ring=c=>{const C=2*Math.PI*46;return `<div class="fx-ring ${c.over?'over':''}"><svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="46"/>
+      <circle class="val" cx="50" cy="50" r="46" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-c.pct)}"/></svg>
+      <div class="fx-clock"><b id="fxclock">${c.big}</b><span id="fxsmall">${c.small}</span></div></div>`};
+const minLab=m=>m<60?m+'m':Math.floor(m/60)+'h'+(m%60||'');
+// A step finished or unticked can finish or reopen its task, the same everywhere.
+function stepTick(t,j,on){t.steps[j].done=on;const full=t.steps.every(x=>x.done);
+  if(full&&stageOf(t)!=='completed'){setStage(t,'completed');toast(`“${t.title}” is done`)}
+  else if(!full&&stageOf(t)==='completed')reopen(t)}
 function drawFocus(){if($('#focus').hidden||FX==null)return;const t=tasks()[FX];if(!t)return closeFocus();
-  const st=stageOf(t), c=focusClock(t), C=2*Math.PI*46, ok=t.steps.filter(x=>x.done).length, ix=open_();
+  if(HX!=null){if(t.steps[HX])return drawHyper(t);HX=null}
+  const st=stageOf(t), c=focusClock(t), ok=t.steps.filter(x=>x.done).length, ix=open_();
   $('#fxpos').textContent=ix.includes(FX)?`${ix.indexOf(FX)+1} of ${ix.length} open`:'';
   $('#fxbody').innerHTML=`<div class="fx-stage">${st==='started'?'In progress':st==='completed'?'Completed':'Planned'}</div>
-    <h2 class="fx-title">${esc(t.icon)} ${esc(t.title)}</h2>${t.why?`<div class="fx-why">${esc(t.why)}</div>`:''}
-    <div class="fx-ring ${c.over?'over':''}"><svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="46"/>
-      <circle class="val" cx="50" cy="50" r="46" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-c.pct)}"/></svg>
-      <div class="fx-clock"><b id="fxclock">${c.big}</b><span id="fxsmall">${c.small}</span></div></div>
-    <ul class="fx-steps">${t.steps.map((x,j)=>`<li class="${x.done?'done':''}"><input type="checkbox" data-fs="${j}" ${x.done?'checked':''}><span>${esc(x.text)}</span></li>`).join('')}</ul>
+    <h2 class="fx-title">${esc(t.icon)} <span data-fe="title" title="Click to edit">${esc(t.title)}</span></h2>
+    <div class="fx-why" data-fe="why" title="Click to edit">${t.why?esc(t.why):'<span class="ph">+ what it’s for</span>'}</div>
+    ${ring(c)}
+    <div class="fx-tbox"><span class="fx-lab">Time limit</span>${[15,30,45,60,90,120].map(m=>`<button class="chip ${m===t.minutes?'on':''}" data-fm="${m}">${minLab(m)}</button>`).join('')}
+      <input class="inl" id="fxother" placeholder="Other" aria-label="Other time limit"></div>
+    <div class="fx-tbox"><span class="fx-lab">Add</span>${[5,10,15].map(m=>`<button class="chip" data-fa="${m}">+${m}m</button>`).join('')}</div>
+    <ul class="fx-steps">${t.steps.map((x,j)=>`<li class="${x.done?'done':''}" data-fstep="${j}"><span class="fx-grip" title="Drag to reorder">⠿</span>
+      <input type="checkbox" data-fs="${j}" ${x.done?'checked':''}><span data-fe="step" data-s="${j}">${esc(x.text)}</span>
+      ${x.spent||x.run_since?`<em class="spent">· ${Math.max(1,Math.round(stepSpent(x)/60))} min spent</em>`:''}
+      ${x.done?'':`<button class="x" data-hx="${j}" title="Hyper focus: this step full screen, with its own timer">◎</button>`}
+      <button class="x" data-fds="${j}" title="Remove step">×</button></li>`).join('')}</ul>
+    <div class="fx-add"><input class="inl" id="fxnew" placeholder="New step, then Enter"><button class="btn" id="fxaddb">+ Add</button></div>
     <div class="fx-acts">${st==='planned'?'<button class="gen" id="fxgo" style="min-height:44px">▶ Start</button>':
       st==='started'?'<button class="gen" id="fxgo" style="min-height:44px;background:var(--ok)">✓ Done</button><button class="btn rs" data-pz="'+FX+'" style="min-height:44px">'+(t.paused_at?'▶ Resume':'⏸ Pause')+'</button><button class="btn rs" data-rs="'+FX+'" style="min-height:44px" title="Restart the timer from now">↺ Restart timer</button>':
       (ix.length?'<button class="gen" id="fxnext2" style="min-height:44px">Next task →</button>':'<span class="sub">Everything is done. Nice.</span>')}
-      <span class="sub" style="align-self:center">${ok}/${t.steps.length} steps</span></div>`;
-  $('#fxbody').querySelectorAll('[data-fs]').forEach(cb=>cb.onchange=()=>{t.steps[cb.dataset.fs].done=cb.checked;
-    const full=t.steps.every(x=>x.done);
-    if(full&&stageOf(t)!=='completed'){setStage(t,'completed');toast(`“${t.title}” is done`)}
-    else if(!full&&stageOf(t)==='completed')setStage(t,t.started_at?'started':'planned');
-    persist()});
-  wireRestart($('#fxbody'));wirePause($('#fxbody'));
+      <span class="sub" style="align-self:center">${ok}/${t.steps.length} steps</span></div>
+    <div class="fx-foot"><button class="btn" id="fxrm">Remove task</button></div>`;
+  const B=$('#fxbody');
+  B.querySelectorAll('[data-fs]').forEach(cb=>cb.onchange=()=>{stepTick(t,+cb.dataset.fs,cb.checked);persist()});
+  wireRestart(B);wirePause(B);
   $('#fxgo')&&($('#fxgo').onclick=()=>{setStage(t,st==='planned'?'started':'completed');persist()});
-  $('#fxnext2')&&($('#fxnext2').onclick=()=>{FX=ix[0];drawFocus()})}
-function focusStep(d){const ix=open_();if(!ix.length)return;const k=ix.indexOf(FX);FX=ix[(k<0?0:k+d+ix.length)%ix.length];drawFocus()}
+  $('#fxnext2')&&($('#fxnext2').onclick=()=>{FX=ix[0];drawFocus()});
+  // Edit in place: title, the "what it's for" line (can be cleared), any step. Enter saves, Esc cancels.
+  B.querySelectorAll('[data-fe]').forEach(el=>el.onclick=()=>{const k=el.dataset.fe;
+    if(k==='title')inline(el,'Task title',v=>{t.title=v;persist()},t.title);
+    if(k==='why')inline(el,"What it's for (optional)",v=>{t.why=v;persist()},t.why||'',true);
+    if(k==='step')inline(el,'Step',v=>{t.steps[el.dataset.s].text=v;persist()},t.steps[el.dataset.s].text)});
+  // Add a step. On a finished task it reopens, paused.
+  const nw=$('#fxnew'), addStep=()=>{const v=nw.value.trim();if(!v)return toast('Type the step first');
+    if(stageOf(t)==='completed')reopen(t);t.steps.push({text:v,done:false});persist().then(()=>$('#fxnew')?.focus())};
+  nw.onkeydown=e=>{if(e.key==='Enter')addStep();if(e.key==='Escape'){e.stopPropagation();nw.value='';nw.blur()}};
+  $('#fxaddb').onclick=addStep;
+  B.querySelectorAll('[data-fds]').forEach(b=>b.onclick=()=>{t.steps.splice(+b.dataset.fds,1);persist()});
+  B.querySelectorAll('[data-hx]').forEach(b=>b.onclick=()=>{HX=+b.dataset.hx;drawFocus()});
+  // Time limit: chips, "Other" (e.g. 4h), and +5/+10/+15 on top of what's set.
+  const setMin=m=>{if(!m||m>1440)return toast('Try 45m or 1h30');t.minutes=m;persist()};
+  B.querySelectorAll('[data-fm]').forEach(b=>b.onclick=()=>setMin(+b.dataset.fm));
+  B.querySelectorAll('[data-fa]').forEach(b=>b.onclick=()=>setMin(Math.min(1440,(t.minutes||0)+ +b.dataset.fa)));
+  const oth=$('#fxother');oth.onkeydown=e=>{if(e.key==='Enter')setMin(parseMin(oth.value));if(e.key==='Escape'){e.stopPropagation();oth.value='';oth.blur()}};
+  // Remove task takes two clicks: the first arms it for three seconds.
+  const rm=$('#fxrm');rm.onclick=()=>{if(!rm.classList.contains('armed')){rm.classList.add('armed');rm.textContent='Remove it?';
+      setTimeout(()=>{if(rm.isConnected){rm.classList.remove('armed');rm.textContent='Remove task'}},3000);return}
+    const title=t.title;tasks().splice(FX,1);const left=open_();
+    FX=left.length?(left.find(i=>i>=FX)??left[0]):null;if(FX==null)$('#focus').hidden=true;
+    persist();toast(`Removed “${title}”`)};
+  // Drag steps by ⠿ to reorder (draggable only while the handle is pressed); the order is saved on dragend.
+  const ul=B.querySelector('.fx-steps');
+  ul.querySelectorAll('.fx-grip').forEach(g=>{const li=g.closest('li');g.onmousedown=()=>li.draggable=true;g.onmouseup=()=>li.draggable=false});
+  ul.ondragstart=e=>{const li=e.target.closest?.('li');if(!li||!li.draggable)return;FDRAG=li;li.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','')};
+  ul.ondragover=e=>{if(!FDRAG)return;e.preventDefault();const li=e.target.closest('li');
+    if(li&&li!==FDRAG){const r=li.getBoundingClientRect();ul.insertBefore(FDRAG,e.clientY<r.top+r.height/2?li:li.nextSibling)}};
+  ul.ondrop=e=>{if(FDRAG)e.preventDefault()};
+  ul.ondragend=()=>{if(!FDRAG)return;FDRAG.draggable=false;FDRAG=null;
+    const old=t.steps;t.steps=[...ul.querySelectorAll('li[data-fstep]')].map(li=>old[li.dataset.fstep]);persist()}}
+
+// ---- Hyper focus (user, 2026-10-23): one step full screen with its own clock. ----
+// Kept on the step: spent = seconds so far, run_since = when it started running (absent while paused),
+// minutes = an optional time box. It opens paused, and the task's own timer is never touched.
+const stepSpent=x=>(x.spent||0)+(x.run_since?(Date.now()-Date.parse(x.run_since))/1000:0);
+function stepPlay(x){x.run_since??=new Date().toISOString()}
+function stepPause(x){if(x.run_since){x.spent=Math.round(stepSpent(x));delete x.run_since}}
+function stepClock(x){const used=stepSpent(x),p=x.run_since?'':used?'paused · ':'ready · ';
+  if(!x.minutes)return{big:clock(used),small:p+(x.run_since||used?'so far':'no time box'),pct:0,over:false};
+  const left=x.minutes*60-used;
+  return left>=0?{big:clock(left),small:`${p}left of ${fmtMin(x.minutes)}`,pct:1-left/(x.minutes*60),over:false}
+                :{big:'+'+clock(-left),small:`${p}over ${fmtMin(x.minutes)}`,pct:1,over:true}}
+function leaveHyper(){const x=tasks()[FX]?.steps[HX];HX=null;if(x)stepPause(x);persist()}
+function drawHyper(t){const x=t.steps[HX], run=!!x.run_since, used=stepSpent(x);
+  $('#fxpos').textContent='One step';
+  $('#fxbody').innerHTML=`<div class="fx-stage">Hyper focus · ${esc(t.icon)} ${esc(t.title)}</div>
+    <h2 class="fx-title">${esc(x.text)}</h2>
+    ${ring(stepClock(x))}
+    <div class="fx-tbox"><span class="fx-lab">Time box</span>${[5,15,25,45].map(m=>`<button class="chip ${x.minutes===m?'on':''}" data-hb="${m}">${m}m</button>`).join('')}
+      <button class="chip ${x.minutes?'':'on'}" data-hb="0">None</button></div>
+    <div class="fx-tbox"><span class="fx-lab">Add time</span>${[5,10,15].map(m=>`<button class="chip" data-ha="${m}">+${m}m</button>`).join('')}</div>
+    <div class="fx-acts"><button class="gen" id="hxgo" style="min-height:44px">${run?'⏸ Pause':used?'▶ Resume':'▶ Start'}</button>
+      <button class="gen" id="hxdone" style="min-height:44px;background:var(--ok)">✓ Step done</button>
+      <button class="btn" id="hxback" style="min-height:44px" title="Back to the task (Esc)">← Back to task</button></div>`;
+  const B=$('#fxbody');
+  $('#hxgo').onclick=()=>{run?stepPause(x):stepPlay(x);persist()};
+  $('#hxdone').onclick=()=>{stepPause(x);HX=null;stepTick(t,t.steps.indexOf(x),true);persist()};
+  $('#hxback').onclick=leaveHyper;
+  B.querySelectorAll('[data-hb]').forEach(b=>b.onclick=()=>{const m=+b.dataset.hb;if(m)x.minutes=m;else delete x.minutes;persist()});
+  // No box yet: the new box is the minutes spent so far, rounded up, plus the amount.
+  B.querySelectorAll('[data-ha]').forEach(b=>b.onclick=()=>{const a=+b.dataset.ha;
+    x.minutes=Math.min(1440,x.minutes?x.minutes+a:Math.ceil(stepSpent(x)/60)+a);persist()})}
+
+function focusStep(d){const ix=open_();if(!ix.length)return;const was=dropHyper();const k=ix.indexOf(FX);
+  FX=ix[(k<0?0:k+d+ix.length)%ix.length];was?persist():drawFocus()}
 $('#focusbtn').onclick=()=>openFocus();$('#fxclose').onclick=closeFocus;
 $('#fxprev').onclick=()=>focusStep(-1);$('#fxnext').onclick=()=>focusStep(1);
 document.addEventListener('keydown',e=>{const typing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
-  if(!$('#focus').hidden){if(e.key==='Escape')closeFocus();if(!typing&&e.key==='ArrowRight')focusStep(1);if(!typing&&e.key==='ArrowLeft')focusStep(-1);return}
+  if(!$('#focus').hidden){if(e.key==='Escape')HX!=null?leaveHyper():closeFocus();
+    if(HX==null&&!typing&&e.key==='ArrowRight')focusStep(1);if(HX==null&&!typing&&e.key==='ArrowLeft')focusStep(-1);return}
   if(!typing&&(e.key==='f'||e.key==='F')&&!e.metaKey&&!e.ctrlKey&&!$('#p-today').hidden)openFocus()});
-setInterval(()=>{if($('#focus').hidden||FX==null||!tasks()[FX])return;const t=tasks()[FX],c=focusClock(t),C=2*Math.PI*46;
+// Every second: update the clock text and ring without redrawing the page (the step's clock in hyper focus).
+setInterval(()=>{if($('#focus').hidden||FX==null||!tasks()[FX])return;const t=tasks()[FX],
+    c=HX!=null&&t.steps[HX]?stepClock(t.steps[HX]):focusClock(t),C=2*Math.PI*46;
   $('#fxclock')&&($('#fxclock').textContent=c.big);$('#fxsmall')&&($('#fxsmall').textContent=c.small);
   const v=$('#fxbody .val');v&&v.setAttribute('stroke-dashoffset',C*(1-c.pct));$('#fxbody .fx-ring')?.classList.toggle('over',c.over)},1000);
 

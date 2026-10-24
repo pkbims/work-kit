@@ -27,6 +27,9 @@ PORT_FILE = TASKS / ".port"
 START_PORT = int(os.environ.get("PORT", "7800"))
 PINNED = "PORT" in os.environ
 MODEL = os.environ.get("TASKS_MODEL", "sonnet")
+# Card making may open links in what was said (user, 2026-10-23). Read-only tools only: WebFetch, plus any
+# connector read tools named in TASKS_LINK_TOOLS (space separated tool names).
+LINK_TOOLS = ["WebFetch", *os.environ.get("TASKS_LINK_TOOLS", "").split()]
 LOCK = threading.Lock()
 
 PROMPT = """You turn a spoken plan for a workday into task cards.
@@ -77,7 +80,7 @@ def view(d: str) -> dict:
 
 def ask(prompt: str, text: str) -> dict:
     out = subprocess.run(
-        ["claude", "-p", "--no-session-persistence", "--tools", "", "--model", MODEL,
+        ["claude", "-p", "--no-session-persistence", "--tools", "WebFetch", "--allowedTools", *LINK_TOOLS, "--model", MODEL,
          "--output-format", "json", "--system-prompt", prompt],
         input=text, capture_output=True, text=True, timeout=180, cwd=str(TASKS),
     )
@@ -253,7 +256,7 @@ def chat_send(d: str, text: str) -> dict:
                                            "t": now(), "status": "sent"})
         save(d, cur)
     tool = HERE / "chat.py"
-    woke = wake(f'Bimal wrote in the Daily Tasks chat ({d}, page at localhost:{PORT}): "{text.strip()}". '
+    woke = wake(f'The user wrote in the Daily Tasks chat ({d}, page at localhost:{PORT}): "{text.strip()}". '
                 f"First: python3 {tool} working {d}. You can read that day's list at {path(d)}; to change it, use "
                 f"the page server (POST localhost:{PORT}/api/add with {{date, text}} adds one card; never hand-edit the "
                 f"file), and never write today's goals for him. Then answer in the chat, short and plain: "

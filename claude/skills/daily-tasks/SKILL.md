@@ -126,6 +126,22 @@ reads as Completed, otherwise Planned. Regenerating the list keeps stage, timer 
 whose title survives. The – on a column header folds it to a thin strip (click the strip to bring it back);
 which columns are folded is remembered per browser (`dt-hidden` in localStorage).
 
+## Timers, focus editing and hyper focus (user, 2026-10-23)
+
+- **Timers never start by themselves.** Only ▶ Start (card or focus) and Resume run a clock. Dragging a card into
+  Started lands it paused (`sendTo`): at now from Planned, at its `done_at` from Completed. Unticking a step of a
+  finished task, or adding one, reopens it in Started paused at its old `done_at` (`reopen`); a task that never
+  started goes back to Planned. Opening focus mode never writes a time.
+- **Links:** card making runs `claude -p --tools WebFetch --allowedTools WebFetch …` so a link in what was said can be
+  read. Read-only tools only; extra connector read tools go in `TASKS_LINK_TOOLS` (space separated).
+- **Focus mode edits the task in place:** click the title, the "what it's for" line (can be cleared) or a step to edit;
+  "New step, then Enter" / + Add; × on each step; Remove task takes two clicks; time limit chips (15m–2h), "Other",
+  and +5m/+10m/+15m; drag steps by ⠿ to reorder. The chat refresh doesn't redraw while focus has the keyboard.
+- **Hyper focus:** ◎ on an open step shows just that step with its own clock, kept on the step as `spent` (seconds),
+  `run_since` (ISO, absent while paused) and optional `minutes` (time box 5/15/25/45 or None, +5/+10/+15). It opens
+  paused; Start/Pause/Resume, Step done, Back to task (Esc) pauses it. The task's own timer is never touched. Closing
+  focus or switching task pauses a running step. Steps show "· N min spent" afterwards.
+
 ## Rules
 
 - Only the server writes the list files, under a lock, atomically.
